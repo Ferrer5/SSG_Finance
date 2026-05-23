@@ -73,6 +73,10 @@ CREATE TABLE school_years (
   year_start     INT                     NOT NULL,
   year_end       INT                     NOT NULL,
   year_status    ENUM('Current','Ended') NOT NULL DEFAULT 'Current',
+  first_sem_start  DATE NULL,
+  first_sem_end    DATE NULL,
+  second_sem_start DATE NULL,
+  second_sem_end   DATE NULL,
 
   PRIMARY KEY (school_year_id),
   CONSTRAINT chk_year_range CHECK (year_end = year_start + 1)
@@ -204,3 +208,58 @@ ALTER TABLE expenses
 -- (your C# model uses f.Amount but the column is named full_amount)
 ALTER TABLE full_amount
   CHANGE COLUMN full_amount amount DECIMAL(10,2) NOT NULL;
+
+
+
+ALTER TABLE full_amount
+  ADD COLUMN semester_start DATE NULL AFTER semester_status,
+  ADD COLUMN semester_end   DATE NULL AFTER semester_start;
+
+
+
+ALTER TABLE school_years
+  ADD COLUMN first_sem_start  DATE NULL AFTER year_status,
+  ADD COLUMN first_sem_end    DATE NULL AFTER first_sem_start,
+  ADD COLUMN second_sem_start DATE NULL AFTER first_sem_end,
+  ADD COLUMN second_sem_end   DATE NULL AFTER second_sem_start;
+
+
+
+  -- Backfill first semester dates
+UPDATE school_years sy
+JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
+    AND fa.semester = 'First'
+SET 
+    sy.first_sem_start = fa.semester_start,
+    sy.first_sem_end   = fa.semester_end
+WHERE sy.first_sem_start IS NULL;
+
+-- Backfill second semester dates
+UPDATE school_years sy
+JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
+    AND fa.semester = 'Second'
+SET 
+    sy.second_sem_start = fa.semester_start,
+    sy.second_sem_end   = fa.semester_end
+WHERE sy.second_sem_start IS NULL;
+
+
+--kung error ang babaw
+UPDATE school_years sy
+JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
+    AND fa.semester = 'First'
+SET 
+    sy.first_sem_start = fa.semester_start,
+    sy.first_sem_end   = fa.semester_end
+WHERE sy.school_year_id > 0
+    AND sy.first_sem_start IS NULL;
+
+-- Backfill second semester dates
+UPDATE school_years sy
+JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
+    AND fa.semester = 'Second'
+SET 
+    sy.second_sem_start = fa.semester_start,
+    sy.second_sem_end   = fa.semester_end
+WHERE sy.school_year_id > 0
+    AND sy.second_sem_start IS NULL;

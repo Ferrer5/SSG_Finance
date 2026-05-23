@@ -1477,19 +1477,61 @@ Best regards,<br>SSG Financial Management System";
                 .ToListAsync();
 
             var feeRecords = await _context.FullAmounts
-                .Select(f => new { f.SchoolYearId, f.Semester })
+                .Where(f => f.Amount > 0)
+            .Select(f => new {
+                f.SchoolYearId,
+                f.Semester,
+                f.SemesterStart,
+                f.SemesterEnd
+            })
                 .ToListAsync();
 
             var result = schoolYears.Select(sy => new {
                 sy.SchoolYearId,
                 sy.YearStart,
                 sy.YearEnd,
-                yearStatus = sy.YearStatus.ToString(),
-                hasFirst  = feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First),
-                hasSecond = feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second)
+                yearStatus     = sy.YearStatus.ToString(),
+                // Show semester as present if it has DATES on the school year itself, not just fee records
+                hasFirst       = sy.FirstSemStart != null || feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First),
+                hasSecond      = sy.SecondSemStart != null || feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second),
+                // Prefer SchoolYear columns; fall back to fee records
+                firstSemStart  = (object)(sy.FirstSemStart  ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First).Select(f => f.SemesterStart).FirstOrDefault()),
+                firstSemEnd    = (object)(sy.FirstSemEnd    ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First).Select(f => f.SemesterEnd).FirstOrDefault()),
+                secondSemStart = (object)(sy.SecondSemStart ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second).Select(f => f.SemesterStart).FirstOrDefault()),
+                secondSemEnd   = (object)(sy.SecondSemEnd   ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second).Select(f => f.SemesterEnd).FirstOrDefault()),
             });
 
             return Json(new { success = true, schoolYears = result });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSchoolYearDateRange(string schoolYear)
+    {
+        try
+        {
+            var parts = schoolYear.Replace("–", "-").Split('-');
+            if (parts.Length != 2 || !int.TryParse(parts[0].Trim(), out var ys) || !int.TryParse(parts[1].Trim(), out var ye))
+                return Json(new { success = false, message = "Invalid school year format." });
+
+            var sy = await _context.SchoolYears
+                .FirstOrDefaultAsync(s => s.YearStart == ys && s.YearEnd == ye);
+
+            if (sy == null)
+                return Json(new { success = false, message = "School year not found." });
+
+            return Json(new
+            {
+                success = true,
+                firstSemStart  = sy.FirstSemStart,
+                firstSemEnd    = sy.FirstSemEnd,
+                secondSemStart = sy.SecondSemStart,
+                secondSemEnd   = sy.SecondSemEnd
+            });
         }
         catch (Exception ex)
         {
@@ -1510,17 +1552,19 @@ Best regards,<br>SSG Financial Management System";
             if (duplicate)
                 return Json(new { success = false, message = "This school year already exists." });
 
-            // Mark all existing school years as Ended
             var existing = await _context.SchoolYears.ToListAsync();
             foreach (var sy in existing)
                 sy.YearStatus = YearStatus.Ended;
 
-            // Add new school year as Current
             _context.SchoolYears.Add(new SchoolYear
             {
-                YearStart  = request.YearStart,
-                YearEnd    = request.YearEnd,
-                YearStatus = YearStatus.Current
+                YearStart      = request.YearStart,
+                YearEnd        = request.YearEnd,
+                YearStatus     = YearStatus.Current,
+                FirstSemStart  = request.FirstSemStart,
+                FirstSemEnd    = request.FirstSemEnd,
+                SecondSemStart = request.SecondSemStart,
+                SecondSemEnd   = request.SecondSemEnd
             });
 
             await _context.SaveChangesAsync();
@@ -1544,6 +1588,24 @@ Best regards,<br>SSG Financial Management System";
             if (sy == null)
                 return Json(new { success = false, message = "School year not found." });
 
+            // Check for payments tied to this school year's fees
+            var feeIds = sy.FullAmounts.Select(f => f.FullAmountId).ToList();
+            var hasPayments = feeIds.Any() && await _context.OrgFeePayments
+                .AnyAsync(p => feeIds.Contains(p.FullAmountId));
+
+            if (hasPayments)
+                return Json(new { success = false, message = "Cannot delete — this school year has existing payment records. Delete the payments first." });
+
+            // Check for funds or expenses
+            var hasFunds = await _context.OtherFunds
+                .AnyAsync(f => f.SchoolYearId == request.SchoolYearId);
+
+            var hasExpenses = await _context.Expenses
+                .AnyAsync(e => e.SchoolYearId == request.SchoolYearId);
+
+            if (hasFunds || hasExpenses)
+                return Json(new { success = false, message = "Cannot delete — this school year has existing fund or expense records." });
+
             if (sy.FullAmounts.Any())
                 _context.FullAmounts.RemoveRange(sy.FullAmounts);
 
@@ -1551,6 +1613,74 @@ Best regards,<br>SSG Financial Management System";
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = "School year deleted successfully." });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetSchoolYearStatus([FromBody] SetSchoolYearStatusRequest request)
+    {
+        try
+        {
+            if (request.Status == "Current")
+            {
+                var allYears = await _context.SchoolYears.ToListAsync();
+                foreach (var sy in allYears)
+                    sy.YearStatus = YearStatus.Ended;
+            }
+
+            var schoolYear = await _context.SchoolYears.FindAsync(request.SchoolYearId);
+            if (schoolYear == null)
+                return Json(new { success = false, message = "School year not found." });
+
+            schoolYear.YearStatus = request.Status == "Current"
+                ? YearStatus.Current
+                : YearStatus.Ended;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = $"School year set as {request.Status}." });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateSchoolYearDates([FromBody] UpdateSchoolYearDatesRequest request)
+    {
+        try
+        {
+            var sy = await _context.SchoolYears.FindAsync(request.SchoolYearId);
+            if (sy == null)
+                return Json(new { success = false, message = "School year not found." });
+
+            sy.FirstSemStart  = request.FirstSemStart;
+            sy.FirstSemEnd    = request.FirstSemEnd;
+            sy.SecondSemStart = request.SecondSemStart;
+            sy.SecondSemEnd   = request.SecondSemEnd;
+
+            var firstFee = await _context.FullAmounts
+                .FirstOrDefaultAsync(f => f.SchoolYearId == request.SchoolYearId && f.Semester == Semester.First);
+            if (firstFee != null)
+            {
+                firstFee.SemesterStart = request.FirstSemStart;
+                firstFee.SemesterEnd   = request.FirstSemEnd;
+            }
+
+            var secondFee = await _context.FullAmounts
+                .FirstOrDefaultAsync(f => f.SchoolYearId == request.SchoolYearId && f.Semester == Semester.Second);
+            if (secondFee != null)
+            {
+                secondFee.SemesterStart = request.SecondSemStart;
+                secondFee.SemesterEnd   = request.SecondSemEnd;
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, message = "Semester dates updated successfully." });
         }
         catch (Exception ex)
         {
@@ -1621,6 +1751,7 @@ Best regards,<br>SSG Financial Management System";
         {
             var fees = await _context.FullAmounts
                 .Include(f => f.SchoolYear)
+                .Where(f => f.Amount > 0)
                 .OrderByDescending(f => f.SchoolYear.YearStart)
                 .ThenByDescending(f => f.Semester)
                 .ToListAsync();
@@ -1722,6 +1853,24 @@ Best regards,<br>SSG Financial Management System";
             }
 
             await _context.SaveChangesAsync();
+
+            // After saving the FullAmount, sync dates back to SchoolYear
+            var schoolYear = await _context.SchoolYears.FindAsync(request.SchoolYearId);
+            if (schoolYear != null)
+            {
+                if (semester == Semester.First)
+                {
+                    schoolYear.FirstSemStart = existing?.SemesterStart ?? schoolYear.FirstSemStart;
+                    schoolYear.FirstSemEnd   = existing?.SemesterEnd   ?? schoolYear.FirstSemEnd;
+                }
+                else
+                {
+                    schoolYear.SecondSemStart = existing?.SemesterStart ?? schoolYear.SecondSemStart;
+                    schoolYear.SecondSemEnd   = existing?.SemesterEnd   ?? schoolYear.SecondSemEnd;
+                }
+            }
+
+            await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Fee amount set successfully." });
         }
         catch (Exception ex)
@@ -1802,14 +1951,19 @@ Best regards,<br>SSG Financial Management System";
         try
         {
             var fee = await _context.FullAmounts
-                .Include(f => f.SchoolYear)
                 .FirstOrDefaultAsync(f => f.FullAmountId == request.FullAmountId);
 
             if (fee == null)
                 return Json(new { success = false, message = "Fee record not found." });
 
-            var deletedWasCurrent = fee.SemesterStatus == SemesterStatus.Current;
+            // Block if payments exist
+            var hasPayments = await _context.OrgFeePayments
+                .AnyAsync(p => p.FullAmountId == request.FullAmountId);
 
+            if (hasPayments)
+                return Json(new { success = false, message = "Cannot delete — this semester has existing payment records." });
+
+            var deletedWasCurrent = fee.SemesterStatus == SemesterStatus.Current;
             _context.FullAmounts.Remove(fee);
             await _context.SaveChangesAsync();
 
@@ -2081,14 +2235,34 @@ Best regards,<br>SSG Financial Management System";
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetTreasurerStudentsWithFees()
+    public async Task<IActionResult> GetTreasurerStudentsWithFees(string? schoolYear = null)
     {
         try
         {
             var students = await GetStudentsAsync();
 
-            var currentSchoolYear = await _context.SchoolYears
-                .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
+            SchoolYear? currentSchoolYear;
+
+            if (!string.IsNullOrWhiteSpace(schoolYear))
+            {
+                // Parse "2025–2026" or "2025-2026"
+                var parts = schoolYear.Replace("–", "-").Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[0].Trim(), out var ys) && int.TryParse(parts[1].Trim(), out var ye))
+                {
+                    currentSchoolYear = await _context.SchoolYears
+                        .FirstOrDefaultAsync(sy => sy.YearStart == ys && sy.YearEnd == ye);
+                }
+                else
+                {
+                    currentSchoolYear = await _context.SchoolYears
+                        .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
+                }
+            }
+            else
+            {
+                currentSchoolYear = await _context.SchoolYears
+                    .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
+            }
 
             var semesterFees = currentSchoolYear != null
                 ? await _context.FullAmounts
@@ -2621,17 +2795,26 @@ Best regards,<br>SSG Financial Management System";
             if (!int.TryParse(accountIdStr, out var receivedBy))
                 return Json(new { success = false, message = "Invalid session." });
 
-            var currentSchoolYear = await _context.SchoolYears
-                .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
+            var receivedDate = request.ReceivedDate?.ToLocalTime() ?? DateTime.Now;
+
+            // Find the school year that matches the fund date
+            // School years run August-June, so Jan-July belongs to previous year_start
+            var targetYearStart = receivedDate.Month >= 8 ? receivedDate.Year : receivedDate.Year - 1;
+            var matchedSchoolYear = await _context.SchoolYears
+                .FirstOrDefaultAsync(sy => sy.YearStart == targetYearStart);
+
+            if (matchedSchoolYear == null)
+                matchedSchoolYear = await _context.SchoolYears
+                    .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
 
             var fund = new OtherFund
             {
-                Source = request.Source,
-                Description = request.Description,
-                Amount = request.Amount,
-                ReceivedBy = receivedBy,
-                ReceivedDate = request.ReceivedDate ?? DateTime.Now,
-                SchoolYearId = currentSchoolYear?.SchoolYearId
+                Source       = request.Source,
+                Description  = request.Description,
+                Amount       = request.Amount,
+                ReceivedBy   = receivedBy,
+                ReceivedDate = receivedDate,
+                SchoolYearId = matchedSchoolYear?.SchoolYearId
             };
 
             _context.OtherFunds.Add(fund);
@@ -2654,16 +2837,26 @@ Best regards,<br>SSG Financial Management System";
             if (!int.TryParse(accountIdStr, out var recordedBy))
                 return Json(new { success = false, message = "Invalid session." });
 
-            var currentSchoolYear = await _context.SchoolYears
-                .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
+            var expenseDate = request.ExpenseDate?.ToLocalTime() ?? DateTime.Now;
+
+            // Find the school year that matches the expense date
+            // School years run August-June, so Jan-July belongs to previous year_start
+            var targetYearStart = expenseDate.Month >= 8 ? expenseDate.Year : expenseDate.Year - 1;
+            var matchedSchoolYear = await _context.SchoolYears
+                .FirstOrDefaultAsync(sy => sy.YearStart == targetYearStart);
+
+            // Fall back to current if no match found
+            if (matchedSchoolYear == null)
+                matchedSchoolYear = await _context.SchoolYears
+                    .FirstOrDefaultAsync(sy => sy.YearStatus == YearStatus.Current);
 
             var expense = new Expense
             {
-                Description = request.Description,
-                Amount = request.Amount,
-                RecordedBy = recordedBy,
-                ExpenseDate = request.ExpenseDate ?? DateTime.Now,
-                SchoolYearId = currentSchoolYear?.SchoolYearId
+                Description  = request.Description,
+                Amount       = request.Amount,
+                RecordedBy   = recordedBy,
+                ExpenseDate  = expenseDate,
+                SchoolYearId = matchedSchoolYear?.SchoolYearId
             };
 
             _context.Expenses.Add(expense);
@@ -2921,6 +3114,7 @@ Best regards,<br>SSG Financial Management System";
                               && paidUserIds.Contains(u.UserId),
                     hasPartial = targetFee != null
                               && partialUserIds.Contains(u.UserId)
+                              && !paidUserIds.Contains(u.UserId)
                 })
                 .OrderBy(s => s.name)
                 .ToList();
@@ -3574,15 +3768,34 @@ public class AddProfessorRequest
 }
 
 
-    public class AddSchoolYearRequest
-    {
-        public int YearStart { get; set; }
-        public int YearEnd   { get; set; }
-    }
+public class AddSchoolYearRequest
+{
+    public int       YearStart      { get; set; }
+    public int       YearEnd        { get; set; }
+    public DateTime? FirstSemStart  { get; set; }
+    public DateTime? FirstSemEnd    { get; set; }
+    public DateTime? SecondSemStart { get; set; }
+    public DateTime? SecondSemEnd   { get; set; }
+}
 
 public class DeleteSchoolYearRequest
 {
     public int SchoolYearId { get; set; }
+}
+
+public class SetSchoolYearStatusRequest
+{
+    public int    SchoolYearId { get; set; }
+    public string Status       { get; set; } = string.Empty;
+}
+
+public class UpdateSchoolYearDatesRequest
+{
+    public int       SchoolYearId   { get; set; }
+    public DateTime? FirstSemStart  { get; set; }
+    public DateTime? FirstSemEnd    { get; set; }
+    public DateTime? SecondSemStart { get; set; }
+    public DateTime? SecondSemEnd   { get; set; }
 }
 
 public class AddCourseRequest

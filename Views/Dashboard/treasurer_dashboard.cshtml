@@ -373,25 +373,49 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
       </div>
     </div>
 
-    <!-- REMAINING BALANCE — inline display, no card -->
-    <div style="margin-bottom:16px;padding:14px 20px;background:transparent;border:none;border-radius:14px;display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d);margin-bottom:4px">Remaining Balance</div>
-        <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.04em" id="s-balance">₱0.00</div>
-        <div style="font-size:10.5px;margin-top:4px" id="s-balance-sub">Income − Expenses</div>
-      </div>
-    </div>
-
     <!-- CHARTS -->
     <div style="margin-bottom:14px">
       <div class="content-card">
-        <div class="cc-hdr">
-          <div class="cc-title">Monthly Overview</div>
-          <select class="filter-select" id="chart-mode" onchange="updateCharts()">
-            <option value="both">Income vs Expenses</option>
-            <option value="income">Income only</option>
-            <option value="expense">Expenses only</option>
-          </select>
+        <div class="cc-hdr" style="flex-direction:column;align-items:stretch;gap:0">
+          <!-- Top row: balance left, nothing right -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d)">Remaining Balance</div>
+              <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.04em;line-height:1" id="s-balance">₱0.00</div>
+            </div>
+          </div>
+
+          <!-- Bottom row: title left, dropdowns right -->
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="cc-title">Monthly Overview</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="filter-select" id="chart-sy" onchange="onChartSYChange()">
+                <option value="">All School Years</option>
+              </select>
+              <select class="filter-select" id="chart-month" onchange="updateCharts()">
+                <option value="">All Months</option>
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+              <select class="filter-select" id="chart-mode" onchange="updateCharts()">
+                <option value="all">All Transactions</option>
+                <option value="both">Income vs Expenses</option>
+                <option value="orgfee">Organizational Fee</option>
+                <option value="funds">Other Funds</option>
+                <option value="expense">Expenses</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="barChart"></canvas></div>
       </div>
@@ -466,11 +490,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
           </select>
           <select class="filter-select" id="students-filter-sy" onchange="applyStudentsPageFilters()">
             <option value="">All School Years</option>
-          </select>
-          <select class="filter-select" id="students-filter-sem" onchange="applyStudentsPageFilters()">
-            <option value="">All Semesters</option>
-            <option value="First">1st Semester</option>
-            <option value="Second">2nd Semester</option>
           </select>
         </div>
       </div>
@@ -711,9 +730,37 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
               <input id="sy-yearEnd" type="number" class="form-input" placeholder="e.g. 2026" />
             </div>
           </div>
+          <div style="margin-bottom:16px;padding:14px 16px;background:rgba(39,167,68,.05);border:1px solid rgba(39,167,68,.12);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;color:#5fdd8e;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">First Semester</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label class="settings-label">Semester Starts</label>
+                <input id="sy-first-start" type="date" class="form-input" />
+              </div>
+              <div>
+                <label class="settings-label">Semester Ends</label>
+                <input id="sy-first-end" type="date" class="form-input" />
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;padding:14px 16px;background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.12);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;color:#fbbf24;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">Second Semester</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label class="settings-label">Semester Starts</label>
+                <input id="sy-second-start" type="date" class="form-input" />
+              </div>
+              <div>
+                <label class="settings-label">Semester Ends</label>
+                <input id="sy-second-end" type="date" class="form-input" />
+              </div>
+            </div>
+          </div>
           <div style="display:flex;justify-content:flex-end">
             <button class="btn-primary" onclick="addSchoolYear()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
               Add School Year
             </button>
           </div>
@@ -770,32 +817,23 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
     <div class="settings-panel" id="settings-fees">
       <div class="content-card" style="margin-bottom:14px">
         <div class="cc-hdr"><div class="cc-title">Set Organization Fee</div></div>
-        <div style="padding:20px 24px">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-            <div>
-              <label class="settings-label">School Year</label>
-              <select id="fee-schoolYear" class="form-select">
-                <option value="">Select school year</option>
-              </select>
-            </div>
-            <div>
-              <label class="settings-label">Semester</label>
-              <select id="fee-semester" class="form-select">
-                <option value="First">1st Semester</option>
-                <option value="Second">2nd Semester</option>
-              </select>
-            </div>
-            <div>
-              <label class="settings-label">Amount (₱)</label>
-              <input id="fee-amount" type="number" step="0.01" class="form-input" placeholder="e.g. 200.00" />
-            </div>
+        <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:flex-end">
+          <div>
+            <label class="form-label">School Year & Semester</label>
+            <select class="form-select" id="fee-sy-sem" onchange="onFeeDropdownChange()">
+              <option value="">Select school year & semester</option>
+            </select>
           </div>
-          <div style="display:flex;justify-content:flex-end">
-            <button class="btn-primary" onclick="setFeeAmount()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-              Set Fee Amount
-            </button>
+          <div>
+            <label class="form-label">Amount (₱)</label>
+            <input id="fee-amount" type="number" step="0.01" class="form-input" placeholder="e.g. 200.00"/>
           </div>
+          <button class="btn-primary" onclick="setFeeAmount()" style="height:38px;white-space:nowrap">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            Set Fee Amount
+          </button>
         </div>
       </div>
 
@@ -1135,6 +1173,61 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- Edit School Year Modal -->
+<div class="modal-overlay" id="modal-edit-sy">
+  <div class="modal-backdrop" onclick="closeModal('modal-edit-sy')"></div>
+  <div class="modal-box" style="max-width:540px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title">Edit School Year</div>
+        <div class="modal-sub" id="edit-sy-sub">Update semester dates</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-edit-sy')">✕</button>
+    </div>
+    <input type="hidden" id="edit-sy-id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <label class="form-label">Year Start</label>
+        <input id="edit-sy-yearStart" type="number" class="form-input" disabled/>
+      </div>
+      <div>
+        <label class="form-label">Year End</label>
+        <input id="edit-sy-yearEnd" type="number" class="form-input" disabled/>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;padding:14px 16px;background:rgba(39,167,68,.05);border:1px solid rgba(39,167,68,.12);border-radius:10px">
+      <div style="font-size:11px;font-weight:700;color:#5fdd8e;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">First Semester</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Semester Starts</label>
+          <input id="edit-sy-first-start" type="date" class="form-input"/>
+        </div>
+        <div>
+          <label class="form-label">Semester Ends</label>
+          <input id="edit-sy-first-end" type="date" class="form-input"/>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px;padding:14px 16px;background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.12);border-radius:10px">
+      <div style="font-size:11px;font-weight:700;color:#fbbf24;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">Second Semester</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Semester Starts</label>
+          <input id="edit-sy-second-start" type="date" class="form-input"/>
+        </div>
+        <div>
+          <label class="form-label">Semester Ends</label>
+          <input id="edit-sy-second-end" type="date" class="form-input"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modal-edit-sy')">Cancel</button>
+      <button class="btn-primary" onclick="saveEditedSchoolYear()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1263,11 +1356,12 @@ async function loadOrgFeePayments() {
         course: p.courseCode,
         yr: p.yearSection,
         sem: p.semester,
-        schoolYear: p.schoolYear,
+        schoolYear: (p.schoolYear || '').replace(/\s*[–-]\s*/g, '–'), // ← normalize to "2025–2026"
         amt: p.amount,
         status: p.paymentStatus,
         receipt: p.receiptNumber || '',
-        date: p.paymentDate.split('T')[0]
+        date: p.paymentDate.split('T')[0],
+        fullDate: p.paymentDate
       }));
     }
   } catch (err) {
@@ -1287,7 +1381,8 @@ async function loadOtherFunds() {
         cat: 'Other Fund',
         amt: f.amount,
         date: f.receivedDate.split('T')[0],
-        schoolYear: f.schoolYear || null
+        fullDate: f.receivedDate,
+        schoolYear: (f.schoolYear || '').replace(/\s*[–-]\s*/g, '–')
       }));
     }
   } catch (err) {
@@ -1305,8 +1400,9 @@ async function loadExpenses() {
         desc: e.description,
         amt: e.amount,
         date: e.expenseDate.split('T')[0],
+        fullDate: e.expenseDate,
         recordedBy: e.recordedBy,
-        schoolYear: e.schoolYear || null
+        schoolYear: (e.schoolYear || '').replace(/\s*[–-]\s*/g, '–')
       }));
     }
   } catch (err) {
@@ -1456,53 +1552,65 @@ async function loadCurrentSemesterInfo() {
 }
 
 function allTransactions() {
-  let rows = [];
-  DB.orgFees.forEach(x => rows.push({ 
-    type:'income', 
-    cat:'Org Fee', 
-    desc:'Org Fee – ' + x.name + ' (' + x.course + ' ' + x.yr + ')', 
-    amt:x.amt, 
-    date:x.date, 
-    receipt:x.receipt||'—', 
-    src:'OrgFee', 
-    sid:x.id,
-    schoolYear: x.schoolYear || null,
-    studentName: x.name,
-    schoolId: x.schoolId,
-    course: x.course,
-    yearSection: x.yr
-  }));
-  DB.funds.forEach(x   => rows.push({ 
-    type:'income', 
-    cat:'Other Receivable', 
-    desc:x.desc + (x.source ? ' – from ' + x.source : ''), 
-    amt:x.amt, 
-    date:x.date, 
-    receipt:'—', 
-    src:'OtherFund', 
-    sid:x.id,
-    schoolYear: x.schoolYear || null,
-    studentName: '',
-    schoolId: '',
-    course: '',
-    yearSection: ''
-  }));
-  DB.expenses.forEach(x=> rows.push({ 
-    type:'expense', 
-    cat:'Expense', 
-    desc:x.desc, 
-    amt:x.amt, 
-    date:x.date, 
-    receipt:'—', 
-    src:'Expense', 
-    sid:x.id,
-    schoolYear: x.schoolYear || null,
-    studentName: '',
-    schoolId: '',
-    course: '',
-    yearSection: ''
-  }));
-  return rows.sort((a, b) => b.date.localeCompare(a.date));
+    let rows = [];
+
+    DB.orgFees.forEach(x => rows.push({
+        type: 'income',
+        cat: 'Org Fee',
+        desc: 'Org Fee – ' + x.name + ' (' + x.course + ' ' + x.yr + ')',
+        amt: x.amt,
+        date: x.date,
+        fullDate: x.fullDate || x.date,  // ← use full timestamp
+        receipt: x.receipt || '—',
+        src: 'OrgFee',
+        sid: x.id,
+        schoolYear: x.schoolYear || null,
+        studentName: x.name,
+        schoolId: x.schoolId,
+        course: x.course,
+        yearSection: x.yr
+    }));
+
+    DB.funds.forEach(x => rows.push({
+        type: 'income',
+        cat: 'Other Receivable',
+        desc: x.desc + (x.source ? ' – from ' + x.source : ''),
+        amt: x.amt,
+        date: x.date,
+        fullDate: x.fullDate || x.date,  // ← use full timestamp
+        receipt: '—',
+        src: 'OtherFund',
+        sid: x.id,
+        schoolYear: x.schoolYear || null,
+        studentName: '',
+        schoolId: '',
+        course: '',
+        yearSection: ''
+    }));
+
+    DB.expenses.forEach(x => rows.push({
+        type: 'expense',
+        cat: 'Expense',
+        desc: x.desc,
+        amt: x.amt,
+        date: x.date,
+        fullDate: x.fullDate || x.date,  // ← use full timestamp
+        receipt: '—',
+        src: 'Expense',
+        sid: x.id,
+        schoolYear: x.schoolYear || null,
+        studentName: '',
+        schoolId: '',
+        course: '',
+        yearSection: ''
+    }));
+
+    // Sort by full datetime descending
+    return rows.sort((a, b) => {
+        const da = new Date(a.fullDate);
+        const db = new Date(b.fullDate);
+        return db - da;
+    });
 }
 
 function totalIncome()   { return DB.orgFees.reduce((s,x)=>s+x.amt,0) + DB.funds.reduce((s,x)=>s+x.amt,0); }
@@ -1668,7 +1776,16 @@ async function showPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
-  if (name === 'dashboard') { await renderDashboard(); setTimeout(renderCharts, 100); }
+  if (name === 'dashboard') {
+    await Promise.all([
+      loadOrgFeePayments(),
+      loadOtherFunds(),
+      loadExpenses()
+    ]);
+    await renderDashboard();
+    await populateChartSchoolYears();
+    setTimeout(renderCharts, 100);
+  }
   if (name === 'history')   await renderHistory();
   if (name === 'students')  await loadStudentsPage();
   if (name === 'income')    await initIncomePage();
@@ -1684,37 +1801,203 @@ async function renderDashboard() {
   if (balEl) balEl.style.display = 'none';
 }
 
+async function populateChartSchoolYears() {
+    try {
+        const res = await fetch('/Home/GetSchoolYears');
+        const data = await res.json();
+        const sel = document.getElementById('chart-sy');
+        if (!sel || !data.success) return;
+
+        const current = data.schoolYears.find(sy => sy.yearStatus === 'Current');
+        sel.innerHTML = '<option value="">All School Years</option>' +
+            data.schoolYears.map(sy =>
+                `<option value="${sy.yearStart}–${sy.yearEnd}">${sy.yearStart}–${sy.yearEnd}</option>`
+            ).join('');
+
+        if (current) sel.value = `${current.yearStart}–${current.yearEnd}`;
+
+        // Rebuild months for the auto-selected school year
+        await rebuildMonthsDropdown(sel.value);
+    } catch {}
+}
+
 function renderCharts() {
-  let months = ['Jan','Feb','Mar','Apr','May','Jun'];
-  let mInc = [0,0,0,0,0,0], mExp = [0,0,0,0,0,0];
-  allTransactions().forEach(t => {
-    let m = new Date(t.date + 'T00:00').getMonth();
-    if (m < 6) { if (t.type==='income') mInc[m]+=t.amt; else mExp[m]+=t.amt; }
-  });
+    const selectedSY    = (document.getElementById('chart-sy')?.value || '').replace(/\s*[–-]\s*/g, '–');
+    const selectedMonth = document.getElementById('chart-month')?.value;
+    const mode          = document.getElementById('chart-mode')?.value || 'both';
 
-  let mode = document.getElementById('chart-mode')?.value || 'both';
-  let datasets = [];
-  if (mode==='both'||mode==='income')  datasets.push({ label:'Income',   data:mInc, backgroundColor:'rgba(39,167,68,.75)',  borderRadius:4, borderSkipped:false });
-  if (mode==='both'||mode==='expense') datasets.push({ label:'Expenses', data:mExp, backgroundColor:'rgba(239,68,68,.65)', borderRadius:4, borderSkipped:false });
+    // Build month labels
+    const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let labels;
 
-  if (barChart) barChart.destroy();
-  const canvas = document.getElementById('barChart');
-  if (!canvas) return;
-  barChart = new Chart(canvas, {
-    type: 'bar',
-    data: { labels: months, datasets },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend: { display: datasets.length > 1, labels: { color:'rgba(232,245,236,.5)', font:{size:11}, boxWidth:10, padding:12 } },
-        tooltip: { callbacks: { label: ctx => ' ' + p(ctx.parsed.y) } }
-      },
-      scales: {
-        x: { grid:{display:false}, ticks:{color:'rgba(232,245,236,.4)',font:{size:10}} },
-        y: { grid:{color:'rgba(255,255,255,.05)'}, ticks:{color:'rgba(232,245,236,.4)',font:{size:10},callback:v=>'₱'+v.toLocaleString()} }
-      }
+    if (selectedMonth !== '' && selectedMonth !== null && selectedMonth !== undefined) {
+        // Single month selected — show days 1-31
+        labels = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
+    } else {
+        // All months — show Jan–Dec
+        labels = allMonths;
     }
-  });
+
+    // Build per-category arrays
+    let mOrgFee = new Array(labels.length).fill(0);
+    let mFunds  = new Array(labels.length).fill(0);
+    let mInc    = new Array(labels.length).fill(0);
+    let mExp    = new Array(labels.length).fill(0);
+
+    allTransactions()
+        .filter(t => {
+            if (selectedMonth !== '' && selectedMonth !== null && selectedMonth !== undefined) {
+                const date = new Date(t.fullDate || t.date + 'T00:00');
+                const syMatch = !selectedSY || (t.schoolYear || '') === selectedSY;
+                return date.getMonth() === parseInt(selectedMonth) && syMatch;
+            } else {
+                if (!selectedSY) return true;
+                return (t.schoolYear || '') === selectedSY;
+            }
+        })
+        .forEach(t => {
+            const date  = new Date(t.fullDate || t.date + 'T00:00');
+            const index = selectedMonth !== '' && selectedMonth !== null
+                ? date.getDate() - 1
+                : date.getMonth();
+
+            if (t.type === 'expense')        mExp[index]    += t.amt;
+            else if (t.src === 'OrgFee')     mOrgFee[index] += t.amt;
+            else if (t.src === 'OtherFund')  mFunds[index]  += t.amt;
+
+            if (t.type === 'income') mInc[index] += t.amt;
+        });
+
+    // Build datasets based on selected mode
+    let datasets = [];
+    switch (mode) {
+        case 'all':
+            datasets = [
+                { label: 'Org Fee',      data: mOrgFee, backgroundColor: 'rgba(39,167,68,.75)',  borderRadius: 4, borderSkipped: false },
+                { label: 'Other Funds',  data: mFunds,  backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 4, borderSkipped: false },
+                { label: 'Expenses',     data: mExp,    backgroundColor: 'rgba(239,68,68,.65)',  borderRadius: 4, borderSkipped: false },
+            ];
+            break;
+        case 'both':
+            datasets = [
+                { label: 'Income',   data: mInc, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false },
+                { label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false },
+            ];
+            break;
+        case 'orgfee':
+            datasets = [
+                { label: 'Organizational Fee', data: mOrgFee, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false },
+            ];
+            break;
+        case 'funds':
+            datasets = [
+                { label: 'Other Funds', data: mFunds, backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 4, borderSkipped: false },
+            ];
+            break;
+        case 'expense':
+            datasets = [
+                { label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false },
+            ];
+            break;
+        default:
+            datasets = [
+                { label: 'Income',   data: mInc, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false },
+                { label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false },
+            ];
+    }
+
+    if (barChart) barChart.destroy();
+    const canvas = document.getElementById('barChart');
+    if (!canvas) return;
+
+    barChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: datasets.length > 1, labels: { color: 'rgba(232,245,236,.5)', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+                tooltip: { callbacks: { label: ctx => ' ' + p(ctx.parsed.y) } }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: 'rgba(232,245,236,.4)', font: { size: 10 } } },
+                y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: 'rgba(232,245,236,.4)', font: { size: 10 }, callback: v => '₱' + v.toLocaleString() } }
+            }
+        }
+    });
+}
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+async function onChartSYChange() {
+    const selectedSY = document.getElementById('chart-sy').value;
+    await rebuildMonthsDropdown(selectedSY);
+    updateCharts();
+}
+
+async function rebuildMonthsDropdown(selectedSY) {
+    const sel = document.getElementById('chart-month');
+    const currentVal = sel.value;
+
+    if (!selectedSY) {
+        // No school year selected — show all months
+        sel.innerHTML = '<option value="">All Months</option>' +
+            MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+        sel.value = currentVal;
+        return;
+    }
+
+    try {
+        const res  = await fetch('/Home/GetSchoolYearDateRange?schoolYear=' + encodeURIComponent(selectedSY));
+        const data = await res.json();
+
+        if (!data.success) {
+            sel.innerHTML = '<option value="">All Months</option>' +
+                MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            return;
+        }
+
+        // Determine month range
+        // Use firstSemStart as the start, secondSemEnd as the end
+        // Fall back to firstSemEnd if secondSemEnd is null
+        const startDate = data.firstSemStart  ? new Date(data.firstSemStart)  : null;
+        const endDate   = data.secondSemEnd   ? new Date(data.secondSemEnd)   :
+                          data.firstSemEnd    ? new Date(data.firstSemEnd)    : null;
+
+        if (!startDate || !endDate) {
+            sel.innerHTML = '<option value="">All Months</option>' +
+                MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            return;
+        }
+
+        const startMonth = startDate.getMonth(); // e.g. 7 = August
+        const endMonth   = endDate.getMonth();   // e.g. 5 = June
+
+        let months = [];
+
+        // Handle wrapping across year boundary (e.g. Aug–June spans two calendar years)
+        if (startMonth <= endMonth) {
+            // Same calendar year range (e.g. Jan–Jun)
+            for (let m = startMonth; m <= endMonth; m++)
+                months.push(m);
+        } else {
+            // Wraps across year boundary (e.g. Aug–Jun)
+            for (let m = startMonth; m <= 11; m++) months.push(m);
+            for (let m = 0; m <= endMonth; m++)  months.push(m);
+        }
+
+        sel.innerHTML = '<option value="">All Months</option>' +
+            months.map(m => `<option value="${m}">${MONTH_NAMES[m]}</option>`).join('');
+
+        // Restore previous selection if still valid
+        if ([...sel.options].some(o => o.value === currentVal))
+            sel.value = currentVal;
+
+    } catch {
+        sel.innerHTML = '<option value="">All Months</option>' +
+            MONTH_NAMES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+    }
 }
 
 function updateCharts() { renderCharts(); }
@@ -1783,7 +2066,7 @@ async function initIncomePage() {
   } catch {}
   // Set date
   const dateEl = document.getElementById('page-fn-date');
-  if (dateEl && !dateEl.value) dateEl.value = today();
+  if (dateEl) dateEl.value = today();  // ← always overwrite with today
 }
 
 async function pageUpdateSemesterStatusLabel(studentId = null) {
@@ -1827,9 +2110,7 @@ async function pageUpdateSemesterStatusLabel(studentId = null) {
     } else if (data.status === 'Partial') {
       pagePreviouslyPaid = paid;
       statusEl.innerHTML = `
-        <span style="color:#fbbf24;font-weight:600">● Partial</span>
-        &nbsp;·&nbsp;
-        <span style="color:#5fdd8e">Paid = ₱${paid.toFixed(2)}</span>
+        <span style="color:#5fdd8e;font-weight:600">Paid = ₱${paid.toFixed(2)}</span>
         &nbsp;·&nbsp;
         <span style="color:#f87171">Unpaid = ₱${unpaid.toFixed(2)}</span>`;
       document.getElementById('page-of-amount').value = unpaid.toFixed(2);
@@ -1885,7 +2166,7 @@ async function pageSearchStudents(q) {
           <div class="student-name">
             ${s.name}
             ${s.hasPaid ? '<span class="badge by" style="font-size:9px">Paid</span>' : ''}
-            ${s.hasPartial ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
+            ${s.hasPartial && !s.hasPaid ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
           </div>
           <div class="student-info">${s.schoolId} · ${s.courseCode} ${s.yearSection}</div>
         </div>
@@ -2007,7 +2288,7 @@ async function pageSubmitFund() {
     const res  = await fetch('/Home/AddOtherFund', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-      body: JSON.stringify({ source, description: desc, amount: amt, receivedDate: new Date(date).toISOString() })
+      body: JSON.stringify({ source, description: desc, amount: amt, receivedDate: new Date(date + 'T00:00:00').toISOString() })
     });
     const data = await res.json();
     if (data.success) {
@@ -2091,28 +2372,42 @@ function renderReceiptCell(paymentId, receiptNumber, hasReceipt) {
   return `<button type="button" class="btn-outline" style="padding:3px 8px;font-size:10.5px;font-family:'DM Mono',monospace" onclick="viewReceipt('OrgFee', ${paymentId}, '${receiptArg}')">${safeReceipt}</button>`;
 }
 
-async function loadStudentsPage() {
-  const tbody = document.getElementById('students-page-tbody');
-  if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Loading students…</td></tr>';
+async function loadStudentsPage(schoolYear = null) {
+    const tbody = document.getElementById('students-page-tbody');
+    if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Loading students…</td></tr>';
 
-  try {
-    const res = await fetch('/Home/GetTreasurerStudentsWithFees');
-    const data = await res.json();
-    if (!data.success) {
-      if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="7">${escapeHtml(data.message || 'Failed to load students.')}</td></tr>`;
-      return;
+    const sySel = document.getElementById('students-filter-sy');
+
+    // Init the SY dropdown only once
+    await initStudentsPageFilters();
+
+    const selectedSY = schoolYear || sySel?.value || '';
+
+    try {
+        const url = selectedSY
+            ? `/Home/GetTreasurerStudentsWithFees?schoolYear=${encodeURIComponent(selectedSY)}`
+            : '/Home/GetTreasurerStudentsWithFees';
+
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success) {
+            if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="7">${escapeHtml(data.message || 'Failed to load students.')}</td></tr>`;
+            return;
+        }
+        ALL_STUDENTS_PAGE = data.students || [];
+
+        const sub = document.getElementById('students-page-sub');
+        if (sub) {
+            sub.textContent = `${ALL_STUDENTS_PAGE.length} approved student${ALL_STUDENTS_PAGE.length !== 1 ? 's' : ''} · A.Y. ${data.schoolYear}`;
+        }
+
+        // Only refresh course filter, NOT school year dropdown
+        populateStudentsPageFilters();
+        applyStudentsPageFilters();
+    } catch (err) {
+        console.error('Failed to load students page:', err);
+        if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load students.</td></tr>';
     }
-    ALL_STUDENTS_PAGE = data.students || [];
-    const sub = document.getElementById('students-page-sub');
-    if (sub && data.schoolYear && data.schoolYear !== 'N/A') {
-      sub.textContent = `${ALL_STUDENTS_PAGE.length} approved student${ALL_STUDENTS_PAGE.length !== 1 ? 's' : ''} · A.Y. ${data.schoolYear}`;
-    }
-    populateStudentsPageFilters();
-    applyStudentsPageFilters();
-  } catch (err) {
-    console.error('Failed to load students page:', err);
-    if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load students.</td></tr>';
-  }
 }
 
 function renderStudentsPage(filtered) {
@@ -2161,35 +2456,50 @@ function filterStudentsPage(q) {
   applyStudentsPageFilters();
 }
 
-function populateStudentsPageFilters() {
-  const courseSel = document.getElementById('students-filter-course');
-  if (!courseSel) return;
+// Call this ONCE on initial page load
+async function initStudentsPageFilters() {
+    const sySel = document.getElementById('students-filter-sy');
+    if (!sySel || sySel.dataset.listenerAttached) return;
 
-  const courses = [...new Set(ALL_STUDENTS_PAGE.map(s => (s.courseCode || '').trim()).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    try {
+        const res = await fetch('/Home/GetSchoolYears');
+        const data = await res.json();
+        if (!data.success) return;
 
-  courseSel.innerHTML = '<option value="">All Courses</option>' + courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        const currentSY = data.schoolYears.find(sy => sy.yearStatus === 'Current');
 
-  if (studentsPageCourse && courses.includes(studentsPageCourse)) courseSel.value = studentsPageCourse;
-  else studentsPageCourse = '';
-
-  fetch('/Home/GetSchoolYears')
-    .then(r => r.json())
-    .then(data => {
-      const sySel = document.getElementById('students-filter-sy');
-      if (!sySel || !data.success) return;
-      sySel.innerHTML = '<option value="">All School Years</option>' +
-        data.schoolYears.map(sy =>
-          `<option value="${sy.yearStart}–${sy.yearEnd}">${sy.yearStart}–${sy.yearEnd}</option>`
+        sySel.innerHTML = data.schoolYears.map(sy =>
+            `<option value="${sy.yearStart}–${sy.yearEnd}">${sy.yearStart}–${sy.yearEnd}</option>`
         ).join('');
-    })
-    .catch(() => {});
+
+        if (currentSY) {
+            sySel.value = `${currentSY.yearStart}–${currentSY.yearEnd}`;
+        }
+
+        sySel.dataset.listenerAttached = 'true';
+        sySel.addEventListener('change', () => loadStudentsPage(sySel.value));
+    } catch {}
+}
+
+// Call this every time data reloads — only refreshes course filter
+function populateStudentsPageFilters() {
+    const courseSel = document.getElementById('students-filter-course');
+    if (!courseSel) return;
+
+    const courses = [...new Set(ALL_STUDENTS_PAGE.map(s => (s.courseCode || '').trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    const prevCourse = courseSel.value;
+    courseSel.innerHTML = '<option value="">All Courses</option>' +
+        courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+    // Restore previously selected course
+    if (prevCourse) courseSel.value = prevCourse;
 }
 
 function applyStudentsPageFilters() {
   studentsPageCourse = document.getElementById('students-filter-course')?.value || '';
-  const filterSY  = document.getElementById('students-filter-sy')?.value  || '';
-  const filterSem = document.getElementById('students-filter-sem')?.value || '';
+  const filterSY = document.getElementById('students-filter-sy')?.value || '';
 
   const filtered = ALL_STUDENTS_PAGE.filter(s => {
     const name        = (s.name        || '').toLowerCase();
@@ -2204,13 +2514,9 @@ function applyStudentsPageFilters() {
       || yearSection.includes(studentsPageQ);
 
     const matchesCourse = !studentsPageCourse || (s.courseCode || '') === studentsPageCourse;
-    const matchesSY = !filterSY || (s.schoolYear || '') === filterSY;
-    const matchesSem = !filterSem || (
-      filterSem === 'First'  ? s.firstSemStatus  !== undefined :
-      filterSem === 'Second' ? s.secondSemStatus !== undefined : true
-    );
+    // ↑ No matchesSY — the server already filtered by school year
 
-    return matchesQ && matchesCourse && matchesSY && matchesSem;
+    return matchesQ && matchesCourse;
   });
 
   renderStudentsPage(filtered);
@@ -2274,10 +2580,10 @@ async function openStudentOrgFeeModal(userId) {
 // ── MODALS ───────────────────────────────────────────────────────
 function openModal(id) {
   document.getElementById(id).classList.add('open');
-  document.querySelectorAll('.form-input[type=date]').forEach(i => { if (!i.value) i.value = today(); });
+  document.querySelectorAll('.form-input[type=date]').forEach(i => { i.value = today(); });
   if (id === 'modal-orgfee') {
     loadAvailableSemesters();
-    autoFillReceiptNumber();  // ← add this
+    autoFillReceiptNumber();
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -2331,7 +2637,7 @@ async function searchStudents(q) {
           <div class="student-name">
             ${s.name} 
             ${s.hasPaid ? '<span class="badge by" style="font-size:9px">Paid</span>' : ''}
-            ${s.hasPartial ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
+            ${s.hasPartial && !s.hasPaid ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
           </div>
           <div class="student-info">${s.schoolId} · ${s.courseCode} ${s.yearSection}</div>
         </div>
@@ -2427,7 +2733,7 @@ async function saveFund() {
         source: source,
         description: desc,
         amount: amt,
-        receivedDate: new Date(date).toISOString()
+        receivedDate: new Date(date + 'T00:00:00').toISOString()
       })
     });
     const data = await res.json();
@@ -2461,7 +2767,7 @@ async function saveExpense() {
       body: JSON.stringify({
         description: desc,
         amount: amt,
-        expenseDate: new Date(date).toISOString()
+        expenseDate: new Date(date + 'T00:00:00').toISOString()
       })
     });
     const data = await res.json();
@@ -2578,6 +2884,10 @@ async function switchSettingsTab(name, btn) {
 
   if (name === 'sy')      await refreshSchoolYears();
   if (name === 'courses') await refreshCourses();
+  if (name === 'fees') {
+    await refreshFees();
+    await populateFeeSySemDropdown();
+  }
   if (name === 'fees')    await refreshFees();
   if (name === 'signature') {
     initSignaturePad();
@@ -2776,22 +3086,32 @@ async function refreshSignature() {
 }
 
 async function addSchoolYear() {
-  const yearStart = parseInt(document.getElementById('sy-yearStart').value);
-  const yearEnd   = parseInt(document.getElementById('sy-yearEnd').value);
+  const yearStart   = parseInt(document.getElementById('sy-yearStart').value);
+  const yearEnd     = parseInt(document.getElementById('sy-yearEnd').value);
+  const firstStart  = document.getElementById('sy-first-start').value  || null;
+  const firstEnd    = document.getElementById('sy-first-end').value    || null;
+  const secondStart = document.getElementById('sy-second-start').value || null;
+  const secondEnd   = document.getElementById('sy-second-end').value   || null;
 
-  if (!yearStart || !yearEnd)          { showToast('Both year start and end are required.', 'fail'); return; }
-  if (yearEnd !== yearStart + 1)       { showToast('Year end must be exactly year start + 1.', 'fail'); return; }
+  if (!yearStart || !yearEnd)    { showToast('Both year start and end are required.', 'fail'); return; }
+  if (yearEnd !== yearStart + 1) { showToast('Year end must be exactly year start + 1.', 'fail'); return; }
 
   try {
-    const res  = await fetch('/Home/AddSchoolYear', {
+    const res = await fetch('/Home/AddSchoolYear', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() },
-      body:    JSON.stringify({ yearStart, yearEnd })
+      body: JSON.stringify({
+        yearStart, yearEnd,
+        firstSemStart:  firstStart  ? new Date(firstStart).toISOString()  : null,
+        firstSemEnd:    firstEnd    ? new Date(firstEnd).toISOString()    : null,
+        secondSemStart: secondStart ? new Date(secondStart).toISOString() : null,
+        secondSemEnd:   secondEnd   ? new Date(secondEnd).toISOString()   : null
+      })
     });
     const data = await res.json();
     if (data.success) {
-      document.getElementById('sy-yearStart').value = '';
-      document.getElementById('sy-yearEnd').value   = '';
+      ['sy-yearStart','sy-yearEnd','sy-first-start','sy-first-end','sy-second-start','sy-second-end']
+        .forEach(id => document.getElementById(id).value = '');
       showToast(data.message, 'ok');
       await refreshSchoolYears();
     } else {
@@ -2812,16 +3132,31 @@ async function refreshSchoolYears() {
 
     if (data.schoolYears.length === 0) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No school years found.</td></tr>';
+      await populateFeeSySemDropdown();
       return;
     }
 
-    tbody.innerHTML = data.schoolYears.map((sy, i) => `
+    tbody.innerHTML = data.schoolYears.map((sy, i) => {
+      const fmt = d => d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) : '—';
+      return `
       <tr>
         <td class="td-mono td-m">${i + 1}</td>
         <td><strong>${sy.yearStart} – ${sy.yearEnd}</strong></td>
         <td>
-          ${sy.hasFirst  ? '<span class="badge bg" style="margin-right:4px">1st</span>' : '<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text-d);margin-right:4px">1st</span>'}
-          ${sy.hasSecond ? '<span class="badge bg">2nd</span>'                           : '<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text-d)">2nd</span>'}
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:6px">
+              ${sy.hasFirst
+                ? `<span class="badge bg">1st</span>
+                   <span style="font-size:10.5px;color:var(--text-m)">${fmt(sy.firstSemStart)} → ${fmt(sy.firstSemEnd)}</span>`
+                : `<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text-d)">1st</span>`}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${sy.hasSecond
+                ? `<span class="badge bg">2nd</span>
+                   <span style="font-size:10.5px;color:var(--text-m)">${fmt(sy.secondSemStart)} → ${fmt(sy.secondSemEnd)}</span>`
+                : `<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text-d)">2nd</span>`}
+            </div>
+          </div>
         </td>
         <td>
           ${sy.yearStatus === 'Current'
@@ -2829,20 +3164,38 @@ async function refreshSchoolYears() {
             : '<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text-d)">Ended</span>'}
         </td>
         <td style="text-align:right">
-          <button class="btn-danger" onclick="deleteSchoolYear(${sy.schoolYearId})" style="font-size:11px;padding:5px 12px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Delete
-          </button>
+          <div class="dropdown-wrap">
+            <button class="dot-btn" onclick="toggleDropdown(this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+              </svg>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" onclick="editSchoolYear(${sy.schoolYearId}, ${sy.yearStart}, ${sy.yearEnd}, '${sy.firstSemStart || ''}', '${sy.firstSemEnd || ''}', '${sy.secondSemStart || ''}', '${sy.secondSemEnd || ''}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Edit
+              </div>
+              <div class="dropdown-item" onclick="changeSchoolYearStatus(${sy.schoolYearId}, '${sy.yearStatus}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                ${sy.yearStatus === 'Current' ? 'Mark as Ended' : 'Set as Current'}
+              </div>
+              <div class="dropdown-item danger" onclick="deleteSchoolYear(${sy.schoolYearId})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Delete
+              </div>
+            </div>
+          </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
-    // also refresh the school year dropdown in fee section
-    const sel = document.getElementById('fee-schoolYear');
-    if (sel) {
-      sel.innerHTML = '<option value="">Select school year</option>' +
-        data.schoolYears.map(sy => `<option value="${sy.schoolYearId}">${sy.yearStart} – ${sy.yearEnd}</option>`).join('');
-    }
+    await populateFeeSySemDropdown();
   } catch {}
 }
 
@@ -2853,6 +3206,21 @@ async function deleteSchoolYear(schoolYearId) {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() },
       body:    JSON.stringify({ schoolYearId })
+    });
+    const data = await res.json();
+    if (data.success) { showToast(data.message, 'ok'); await refreshSchoolYears(); }
+    else showToast(data.message, 'fail');
+  } catch { showToast('Request failed.', 'fail'); }
+}
+
+async function changeSchoolYearStatus(schoolYearId, currentStatus) {
+  const newStatus = currentStatus === 'Current' ? 'Ended' : 'Current';
+  if (!confirm(`Set this school year as ${newStatus}?`)) return;
+  try {
+    const res  = await fetch('/Home/SetSchoolYearStatus', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() },
+      body:    JSON.stringify({ schoolYearId, status: newStatus })
     });
     const data = await res.json();
     if (data.success) { showToast(data.message, 'ok'); await refreshSchoolYears(); }
@@ -2929,13 +3297,56 @@ async function deleteCourse(courseId) {
   } catch { showToast('Request failed.', 'fail'); }
 }
 
+async function populateFeeSySemDropdown() {
+  try {
+    const res  = await fetch('/Home/GetSchoolYears');
+    const data = await res.json();
+    const sel  = document.getElementById('fee-sy-sem');
+    if (!sel || !data.success) return;
+
+    const semesters = [];
+    const sorted = [...data.schoolYears].sort((a, b) => b.yearStart - a.yearStart);
+    sorted.forEach(sy => {
+      semesters.push({
+        schoolYearId: sy.schoolYearId,
+        yearStart:    sy.yearStart,
+        yearEnd:      sy.yearEnd,
+        semester:     'First',
+        label:        `${sy.yearStart}–${sy.yearEnd} · 1st Semester`
+      });
+      semesters.push({
+        schoolYearId: sy.schoolYearId,
+        yearStart:    sy.yearStart,
+        yearEnd:      sy.yearEnd,
+        semester:     'Second',
+        label:        `${sy.yearStart}–${sy.yearEnd} · 2nd Semester`
+      });
+    });
+
+    sel.innerHTML = '<option value="">Select school year & semester</option>' +
+      semesters.map(s =>
+        `<option value="${s.schoolYearId}|${s.semester}"
+                 data-school-year-id="${s.schoolYearId}"
+                 data-semester="${s.semester}">
+           ${s.label}
+         </option>`
+      ).join('');
+  } catch {}
+}
+
+function onFeeDropdownChange() {
+  // Placeholder for future fee dropdown behavior.
+}
+
 async function setFeeAmount() {
-  const schoolYearId = parseInt(document.getElementById('fee-schoolYear').value);
-  const semester     = document.getElementById('fee-semester').value;
+  const sel = document.getElementById('fee-sy-sem');
+  const opt = sel.options[sel.selectedIndex];
+  const schoolYearId = parseInt(opt?.dataset?.schoolYearId);
+  const semester     = opt?.dataset?.semester;
   const amount       = parseFloat(document.getElementById('fee-amount').value);
 
-  if (!schoolYearId)      { showToast('Please select a school year.', 'fail'); return; }
-  if (!semester)          { showToast('Please select a semester.', 'fail'); return; }
+  if (!schoolYearId)          { showToast('Please select a school year & semester.', 'fail'); return; }
+  if (!semester)              { showToast('Please select a semester.', 'fail'); return; }
   if (!amount || amount <= 0) { showToast('Please enter a valid amount.', 'fail'); return; }
 
   try {
@@ -2956,6 +3367,7 @@ async function setFeeAmount() {
 }
 
 async function refreshFees() {
+  await populateFeeSySemDropdown();
   try {
     const res  = await fetch('/Home/GetFees');
     const data = await res.json();
@@ -2974,6 +3386,7 @@ async function refreshFees() {
 
     if (data.fees.length === 0) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No fee records found.</td></tr>';
+      await populateFeeSySemDropdown();
       return;
     }
 
@@ -3011,8 +3424,7 @@ async function refreshFees() {
       </tr>
     `).join('');
 
-    // refresh school year dropdown
-    await refreshSchoolYears();
+    await populateFeeSySemDropdown();
   } catch {}
 }
 
@@ -3345,11 +3757,63 @@ async function updateExpense(id) {
   }
 }
 
+function editSchoolYear(id, yearStart, yearEnd, firstStart, firstEnd, secondStart, secondEnd) {
+  document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+  document.getElementById('edit-sy-id').value          = id;
+  document.getElementById('edit-sy-yearStart').value   = yearStart;
+  document.getElementById('edit-sy-yearEnd').value     = yearEnd;
+  document.getElementById('edit-sy-sub').textContent   = `A.Y. ${yearStart}–${yearEnd}`;
+  // Convert ISO date strings to yyyy-mm-dd for date inputs
+  const toInput = d => d ? d.split('T')[0] : '';
+  document.getElementById('edit-sy-first-start').value  = toInput(firstStart);
+  document.getElementById('edit-sy-first-end').value    = toInput(firstEnd);
+  document.getElementById('edit-sy-second-start').value = toInput(secondStart);
+  document.getElementById('edit-sy-second-end').value   = toInput(secondEnd);
+  openModal('modal-edit-sy');
+}
+
+async function saveEditedSchoolYear() {
+  const id          = parseInt(document.getElementById('edit-sy-id').value);
+  const firstStart  = document.getElementById('edit-sy-first-start').value  || null;
+  const firstEnd    = document.getElementById('edit-sy-first-end').value    || null;
+  const secondStart = document.getElementById('edit-sy-second-start').value || null;
+  const secondEnd   = document.getElementById('edit-sy-second-end').value   || null;
+
+  try {
+    const res  = await fetch('/Home/UpdateSchoolYearDates', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getToken() },
+      body:    JSON.stringify({
+        schoolYearId:   id,
+        firstSemStart:  firstStart  ? new Date(firstStart).toISOString()  : null,
+        firstSemEnd:    firstEnd    ? new Date(firstEnd).toISOString()    : null,
+        secondSemStart: secondStart ? new Date(secondStart).toISOString() : null,
+        secondSemEnd:   secondEnd   ? new Date(secondEnd).toISOString()   : null
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModal('modal-edit-sy');
+      showToast(data.message, 'ok');
+      await refreshSchoolYears();
+    } else {
+      showToast(data.message, 'fail');
+    }
+  } catch { showToast('Request failed.', 'fail'); }
+}
+
 // ── INIT ─────────────────────────────────────────────────────────
 async function init() {
   await loadCurrentSemesterInfo();
+  await Promise.all([
+    loadOrgFeePayments(),
+    loadOtherFunds(),
+    loadExpenses()
+  ]);
   await renderDashboard();
   await loadStudents();
+  await populateFeeSySemDropdown();
+  await populateChartSchoolYears();
   setTimeout(renderCharts, 200);
 }
 
@@ -3384,9 +3848,11 @@ async function refreshTreasurerPages(pages) {
 
         switch (page) {
             case 'dashboard':
-                await loadOrgFeePayments();
-                await loadOtherFunds();
-                await loadExpenses();
+                await Promise.all([
+                    loadOrgFeePayments(),
+                    loadOtherFunds(),
+                    loadExpenses()
+                ]);
                 await renderDashboard();
                 renderCharts();
                 break;
