@@ -43,15 +43,30 @@ CREATE TABLE courses (
   UNIQUE KEY uq_course_code (course_code)
 );
 
--- 4. academic_profile
+-- 4. school_years (must exist before academic_profile references it)
+CREATE TABLE school_years (
+  school_year_id   INT                     NOT NULL AUTO_INCREMENT,
+  year_start       INT                     NOT NULL,
+  year_end         INT                     NOT NULL,
+  year_status      ENUM('Current','Ended') NOT NULL DEFAULT 'Current',
+  first_sem_start  DATE                    NULL,
+  first_sem_end    DATE                    NULL,
+  second_sem_start DATE                    NULL,
+  second_sem_end   DATE                    NULL,
+
+  PRIMARY KEY (school_year_id),
+  CONSTRAINT chk_year_range CHECK (year_end = year_start + 1)
+);
+
+-- 5. academic_profile
 CREATE TABLE academic_profile (
-  academic_profile_id INT         NOT NULL AUTO_INCREMENT,
-  user_id             INT         NOT NULL,
-  course_id           INT         NOT NULL,
-  school_year_id      INT         NULL,           -- year they entered/transferred
-  semester_entered    ENUM('First','Second') NULL, -- semester they entered/transferred
-  year_level          INT         NULL,
-  section             VARCHAR(50) NULL,
+  academic_profile_id INT                    NOT NULL AUTO_INCREMENT,
+  user_id             INT                    NOT NULL,
+  course_id           INT                    NOT NULL,
+  school_year_id      INT                    NULL,
+  semester_entered    ENUM('First','Second') NULL,
+  year_level          INT                    NULL,
+  section             VARCHAR(50)            NULL,
   academic_status     ENUM('Enrolled','Transferred','Graduated','Dropped') NOT NULL DEFAULT 'Enrolled',
 
   PRIMARY KEY (academic_profile_id),
@@ -67,29 +82,15 @@ CREATE TABLE academic_profile (
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
--- 5. school_years
-CREATE TABLE school_years (
-  school_year_id INT                     NOT NULL AUTO_INCREMENT,
-  year_start     INT                     NOT NULL,
-  year_end       INT                     NOT NULL,
-  year_status    ENUM('Current','Ended') NOT NULL DEFAULT 'Current',
-  first_sem_start  DATE NULL,
-  first_sem_end    DATE NULL,
-  second_sem_start DATE NULL,
-  second_sem_end   DATE NULL,
-
-  PRIMARY KEY (school_year_id),
-  CONSTRAINT chk_year_range CHECK (year_end = year_start + 1)
-);
-
 -- 6. full_amount
---    No unique key on (school_year_id, semester) — allows multiple records per semester
 CREATE TABLE full_amount (
   full_amount_id  INT                     NOT NULL AUTO_INCREMENT,
   school_year_id  INT                     NOT NULL,
   semester        ENUM('First','Second')  NOT NULL,
-  full_amount     DECIMAL(10,2)           NOT NULL,
+  amount          DECIMAL(10,2)           NOT NULL,
   semester_status ENUM('Current','Ended') NOT NULL DEFAULT 'Current',
+  semester_start  DATE                    NULL,
+  semester_end    DATE                    NULL,
 
   PRIMARY KEY (full_amount_id),
   CONSTRAINT fk_full_amount_sy
@@ -127,24 +128,32 @@ CREATE TABLE other_funds (
   amount        DECIMAL(10,2) NOT NULL,
   received_by   INT           NOT NULL,
   received_date TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  school_year_id INT          NULL,
 
   PRIMARY KEY (fund_id),
   CONSTRAINT fk_fund_receiver
     FOREIGN KEY (received_by) REFERENCES accounts (account_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_fund_school_year
+    FOREIGN KEY (school_year_id) REFERENCES school_years (school_year_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- 9. expenses
 CREATE TABLE expenses (
-  expense_id   INT           NOT NULL AUTO_INCREMENT,
-  description  TEXT          NULL,
-  amount       DECIMAL(10,2) NOT NULL,
-  recorded_by  INT           NOT NULL,
-  expense_date TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expense_id    INT           NOT NULL AUTO_INCREMENT,
+  description   TEXT          NULL,
+  amount        DECIMAL(10,2) NOT NULL,
+  recorded_by   INT           NOT NULL,
+  expense_date  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  school_year_id INT          NULL,
 
   PRIMARY KEY (expense_id),
   CONSTRAINT fk_expense_recorder
     FOREIGN KEY (recorded_by) REFERENCES accounts (account_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_expense_school_year
+    FOREIGN KEY (school_year_id) REFERENCES school_years (school_year_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -167,99 +176,14 @@ CREATE TABLE receipts (
 
 -- 11. treasurer_signatures
 CREATE TABLE treasurer_signatures (
-  signature_id   INT          NOT NULL AUTO_INCREMENT,
-  account_id     INT          NOT NULL,
-  signature_data MEDIUMTEXT   NOT NULL,        -- base64 PNG of the drawn signature
-  created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  is_active      BOOLEAN      NOT NULL DEFAULT TRUE,
+  signature_id   INT        NOT NULL AUTO_INCREMENT,
+  account_id     INT        NOT NULL,
+  signature_data MEDIUMTEXT NOT NULL,
+  created_at     TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_active      BOOLEAN    NOT NULL DEFAULT TRUE,
 
   PRIMARY KEY (signature_id),
   CONSTRAINT fk_sig_account
     FOREIGN KEY (account_id) REFERENCES accounts (account_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
-
-ALTER TABLE academic_profile
-  ADD COLUMN school_year_id    INT                    NULL AFTER course_id,
-  ADD COLUMN semester_entered  ENUM('First','Second') NULL AFTER school_year_id,
-  ADD CONSTRAINT fk_academic_school_year
-    FOREIGN KEY (school_year_id)
-    REFERENCES school_years (school_year_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
--- Add school_year_id to other_funds
-ALTER TABLE other_funds
-  ADD COLUMN school_year_id INT NULL AFTER received_date,
-  ADD CONSTRAINT fk_fund_school_year
-    FOREIGN KEY (school_year_id)
-    REFERENCES school_years (school_year_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Add school_year_id to expenses
-ALTER TABLE expenses
-  ADD COLUMN school_year_id INT NULL AFTER expense_date,
-  ADD CONSTRAINT fk_expense_school_year
-    FOREIGN KEY (school_year_id)
-    REFERENCES school_years (school_year_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Rename full_amount column to amount in full_amount table
--- (your C# model uses f.Amount but the column is named full_amount)
-ALTER TABLE full_amount
-  CHANGE COLUMN full_amount amount DECIMAL(10,2) NOT NULL;
-
-
-
-ALTER TABLE full_amount
-  ADD COLUMN semester_start DATE NULL AFTER semester_status,
-  ADD COLUMN semester_end   DATE NULL AFTER semester_start;
-
-
-
-ALTER TABLE school_years
-  ADD COLUMN first_sem_start  DATE NULL AFTER year_status,
-  ADD COLUMN first_sem_end    DATE NULL AFTER first_sem_start,
-  ADD COLUMN second_sem_start DATE NULL AFTER first_sem_end,
-  ADD COLUMN second_sem_end   DATE NULL AFTER second_sem_start;
-
-
-
-  -- Backfill first semester dates
-UPDATE school_years sy
-JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
-    AND fa.semester = 'First'
-SET 
-    sy.first_sem_start = fa.semester_start,
-    sy.first_sem_end   = fa.semester_end
-WHERE sy.first_sem_start IS NULL;
-
--- Backfill second semester dates
-UPDATE school_years sy
-JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
-    AND fa.semester = 'Second'
-SET 
-    sy.second_sem_start = fa.semester_start,
-    sy.second_sem_end   = fa.semester_end
-WHERE sy.second_sem_start IS NULL;
-
-
---kung error ang babaw
-UPDATE school_years sy
-JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
-    AND fa.semester = 'First'
-SET 
-    sy.first_sem_start = fa.semester_start,
-    sy.first_sem_end   = fa.semester_end
-WHERE sy.school_year_id > 0
-    AND sy.first_sem_start IS NULL;
-
--- Backfill second semester dates
-UPDATE school_years sy
-JOIN full_amount fa ON fa.school_year_id = sy.school_year_id 
-    AND fa.semester = 'Second'
-SET 
-    sy.second_sem_start = fa.semester_start,
-    sy.second_sem_end   = fa.semester_end
-WHERE sy.school_year_id > 0
-    AND sy.second_sem_start IS NULL;
