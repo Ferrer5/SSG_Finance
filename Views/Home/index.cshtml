@@ -26,6 +26,57 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ─────────────────────────────────────────────
+   SPLASH SCREEN (shown once per session on site open)
+───────────────────────────────────────────── */
+#splashScreen{
+  position:fixed; inset:0; z-index:99999;
+  background:linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%);
+  display:flex; align-items:center; justify-content:center;
+  opacity:1; transition:opacity .55s ease;
+}
+#splashScreen.splash-hide{ opacity:0; pointer-events:none; }
+#splashScreen.splash-instant{ display:none !important; }
+.splash-inner{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.splash-logo{
+  width:118px; height:118px; object-fit:contain;
+  padding:10px; border-radius:50%; background:#fff;
+  border:3px solid rgba(255,255,255,.72);
+  box-shadow:0 10px 26px rgba(0,0,0,.28);
+  animation:splashPop .75s cubic-bezier(.2,.8,.25,1) both, splashFloat 2.4s ease-in-out .75s infinite;
+}
+.splash-brand{
+  font-size:24px; font-weight:800; color:#fff; letter-spacing:.3px;
+  animation:splashFade .6s ease .35s both;
+}
+.splash-sub{
+  font-size:13px; font-weight:500; color:rgba(255,255,255,.82);
+  letter-spacing:2px; text-transform:uppercase;
+  animation:splashFade .6s ease .5s both;
+}
+.splash-bar{
+  margin-top:10px; width:120px; height:3px; border-radius:3px;
+  background:rgba(255,255,255,.25); overflow:hidden;
+  animation:splashFade .6s ease .6s both;
+}
+.splash-bar::after{
+  content:''; display:block; height:100%; width:40%;
+  background:#fff; border-radius:3px;
+  animation:splashLoad 1.3s ease-in-out infinite;
+}
+@@keyframes splashPop{
+  0%{ transform:scale(.6); opacity:0; }
+  60%{ transform:scale(1.06); opacity:1; }
+  100%{ transform:scale(1); opacity:1; }
+}
+@@keyframes splashFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+@@keyframes splashFade{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+@@keyframes splashLoad{ 0%{ transform:translateX(-120%); } 100%{ transform:translateX(320%); } }
+@@media (prefers-reduced-motion: reduce){
+  .splash-logo{ animation:splashFade .4s ease both; }
+  .splash-bar::after{ animation:none; width:100%; }
+}
+
 html, body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   height: 100%;
@@ -399,9 +450,21 @@ body.login-open .lp-right { transform: translateX(0); }
 .lp-right-inner {
   padding: 60px 64px;
   flex:1;
-  display:flex; flex-direction:column; justify-content:flex-start;
+  display:flex; flex-direction:column;
+  justify-content:center;   /* vertically center the active screen */
+  align-items:center;       /* horizontally center the active screen */
   min-height:100vh;
 }
+
+/* Keep each centered screen to a sensible column width */
+.lp-right-inner > .rp-screen { width:100%; max-width:450px; }
+
+/* The Sign Up screen is long — keep it top-aligned & full-width (NOT centered) */
+.lp-right-inner:has(#screenSignUp.active) {
+  justify-content:flex-start;
+  align-items:stretch;
+}
+.lp-right-inner > #screenSignUp { max-width:none; }
 
 .lp-close {
   position: fixed;        /* changed from absolute */
@@ -521,6 +584,7 @@ body.login-open .lp-right { transform: translateX(0); }
 .password-input,
 .password-wrap .input-field,
 .password-wrap .form-input{
+  display:block;
   padding-right:44px !important;
 }
 
@@ -671,6 +735,32 @@ input[type="password"]::-ms-clear{
 </head>
 <body class="@(openLoginOnLoad ? "login-open" : "")">
 
+<!-- ═══ SPLASH SCREEN ═══ -->
+<div id="splashScreen">
+  <div class="splash-inner">
+    <img class="splash-logo" src="/images/logo.png" alt="SSG Logo">
+    <div class="splash-brand">SSG Finance</div>
+    <div class="splash-sub">Management System</div>
+    <div class="splash-bar"></div>
+  </div>
+</div>
+<script>
+  /* Show the splash only once per browser session (a genuine site "open").
+     Internal navigation (Home/About/Contacts) skips it. This inline script runs
+     before paint, so a repeat visit never flashes the splash. */
+  (function(){
+    try{
+      if(sessionStorage.getItem('ssg_splash_shown') === '1'){
+        document.getElementById('splashScreen').classList.add('splash-instant');
+        window.__ssgSplash = false;
+      } else {
+        sessionStorage.setItem('ssg_splash_shown','1');
+        window.__ssgSplash = true;
+      }
+    }catch(e){ window.__ssgSplash = true; }
+  })();
+</script>
+
 <!-- ═══ SHARED BACKGROUND ═══ -->
 <div id="heroBg"></div>
 <div id="heroOverlay"></div>
@@ -772,8 +862,8 @@ input[type="password"]::-ms-clear{
 
         <input class="input-field" type="text" name="schoolId" placeholder="CTU ID" />
         <div class="password-wrap" style="max-width:450px;">
-          <input class="input-field password-input" type="password" name="password" placeholder="Password" />
-          <button type="button" class="password-toggle" aria-label="Show password" data-toggle-target="input[name=\"password\"]" onclick="togglePasswordVisibility(this)">
+          <input class="input-field password-input" type="password" id="signinPassword" name="password" placeholder="Password" />
+          <button type="button" class="password-toggle" aria-label="Show password" data-toggle-target="#signinPassword" onclick="togglePasswordVisibility(this)">
             <ion-icon name="eye" class="password-toggle-icon"></ion-icon>
           </button>
         </div>
@@ -792,7 +882,7 @@ input[type="password"]::-ms-clear{
 
         <!-- 1. SECURITY -->
         <div class="form-section">
-          <div class="section-title">Security</div>
+          <div class="section-title">Account</div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="studentId">CTU ID</label>
@@ -830,19 +920,25 @@ input[type="password"]::-ms-clear{
 
         <!-- 2. NAME -->
         <div class="form-section">
-          <div class="section-title">Name</div>
+          <div class="section-title">Personal Information</div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="firstName">First Name</label>
               <input type="text" id="firstName" name="firstName" class="form-input" placeholder="Enter here" />
             </div>
-            <div class="form-group">
+            <div class="form-group" style="flex:0 0 90px;">
               <label class="form-label" for="middleName">M. I.</label>
-              <input type="text" id="profMiddleName" class="form-input" placeholder="Enter here" maxlength="1" oninput="this.value=this.value.toUpperCase()" />
+              <input type="text" id="middleName" name="middleName" class="form-input" placeholder="M.I." maxlength="2" oninput="autoMiddlePeriod(this)" style="text-align:center;" />
             </div>
             <div class="form-group">
               <label class="form-label" for="lastName">Last Name</label>
               <input type="text" id="lastName" name="lastName" class="form-input" placeholder="Enter here" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:0 1 50%;">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" id="email" name="email" class="form-input" placeholder="Enter here" />
             </div>
           </div>
         </div>
@@ -872,26 +968,6 @@ input[type="password"]::-ms-clear{
               <div class="form-group">
                 <label class="form-label" for="section">Section</label>
                 <input type="text" id="section" name="section" class="form-input" placeholder="Enter here" />
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="email">Email</label>
-                <input type="email" id="email" name="email" class="form-input" placeholder="Enter here" />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="schoolYear">School Year Entered</label>
-                <select id="schoolYear" name="schoolYear" class="form-input" style="appearance:none; background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M7%2010l5%205%205-5z%22/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position:right 10px center; background-size:20px; padding-right:40px;">
-                  <option value="">Select school year</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="semesterEntered">Semester Entered</label>
-                <select id="semesterEntered" name="semesterEntered" class="form-input" style="appearance:none; background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M7%2010l5%205%205-5z%22/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position:right 10px center; background-size:20px; padding-right:40px;">
-                  <option value="">Select semester</option>
-                  <option value="First">First</option>
-                  <option value="Second">Second</option>
-                </select>
               </div>
             </div>
           </div>
@@ -1009,7 +1085,7 @@ function capitalizeWords(input) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const nameFields = ['firstName', 'middleName', 'lastName'];
+  const nameFields = ['firstName', 'lastName'];
   nameFields.forEach(id => {
     const field = document.getElementById(id);
     if (field) {
@@ -1171,7 +1247,7 @@ function setSignupFieldError(id, hasError) {
 
 function clearSignupErrors() {
     ['studentId','password','confirmPassword','firstName','lastName',
-     'email','course','yearLevel','section','schoolYear','semesterEntered']
+     'email','course','yearLevel','section']
     .forEach(id => setSignupFieldError(id, false));
     const el = document.getElementById('signup-status');
     if (el) el.style.display = 'none';
@@ -1204,8 +1280,6 @@ function handleSignUp() {
     const password        = document.getElementById('password')?.value || '';
     const confirmPassword = document.getElementById('confirmPassword')?.value || '';
     const course          = document.getElementById('course')?.value || '';
-    const schoolYear      = document.getElementById('schoolYear')?.value || '';
-    const semesterEntered = document.getElementById('semesterEntered')?.value || '';
     const section         = document.getElementById('section')?.value.trim() || '';
     const yearLevel       = document.getElementById('yearLevel')?.value || '';
     const studentId       = document.getElementById('studentId')?.value.trim() || '';
@@ -1256,8 +1330,6 @@ function handleSignUp() {
     if (!course)          { setSignupFieldError('course', true);          hasError = true; }
     if (!yearLevel)       { setSignupFieldError('yearLevel', true);       hasError = true; }
     if (!section)         { setSignupFieldError('section', true);         hasError = true; }
-    if (!schoolYear)      { setSignupFieldError('schoolYear', true);      hasError = true; }
-    if (!semesterEntered) { setSignupFieldError('semesterEntered', true); hasError = true; }
 
     if (hasError) {
         showSignupStatus('Please fill in all required fields.', 'fail');
@@ -1266,7 +1338,7 @@ function handleSignUp() {
 
     /* ── Clear errors on input ── */
     ['studentId','password','confirmPassword','firstName','lastName',
-     'email','course','yearLevel','section','schoolYear','semesterEntered']
+     'email','course','yearLevel','section']
     .forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => {
             setSignupFieldError(id, false);
@@ -1278,8 +1350,8 @@ function handleSignUp() {
         schoolId, firstName, lastName, middleName, email,
         password, role: 'Student',
         courseCode: course,
-        schoolYearId: schoolYear ? parseInt(schoolYear) : null,
-        semesterEntered: semesterEntered || null,
+        schoolYearId: null,        // set later by the treasurer (Payment Start)
+        semesterEntered: null,     // set later by the treasurer (Payment Start)
         yearLevel: yearLevel ? parseInt(yearLevel) : null,
         section, studentId
     };
@@ -1498,10 +1570,11 @@ async function loadCourses() {
 
 async function loadSchoolYears() {
   try {
+    const sel = document.getElementById('schoolYear');
+    if (!sel) return;   // School-year field was removed from signup; nothing to populate.
     const r = await fetch('/Home/GetSchoolYears');
     const data = await r.json();
     if (data.success) {
-      const sel = document.getElementById('schoolYear');
       sel.innerHTML = '<option value="">Select school year</option>';
       data.schoolYears.forEach(sy => {
         const opt = document.createElement('option');
@@ -1513,6 +1586,12 @@ async function loadSchoolYears() {
       });
     }
   } catch(e) { console.error('Error loading school years:', e); }
+}
+
+/* ── Auto-format Middle Initial: single uppercase letter followed by a period ── */
+function autoMiddlePeriod(input){
+  var val = input.value.replace(/\./g, '').toUpperCase(); // strip periods, uppercase
+  input.value = val.length ? val.charAt(0) + '.' : '';     // keep first letter + "."
 }
 
 function togglePasswordVisibility(btn){
@@ -1542,20 +1621,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
   /* About/Contacts navbar uses /Home/Login, which redirects here with ?login=1 */
+  window.__deferLoginOpen = false;
   (function openLoginFromDeepLink() {
     const params = new URLSearchParams(window.location.search);
     const loginParam = params.get('login');
     const wantsLogin =
       (loginParam != null && /^(1|true|yes)$/i.test(String(loginParam))) ||
       window.location.hash === '#login';
-    if (!wantsLogin) return;
-    openLoginAfterReadyForTransition(openLogin);
+
+    // Clean the URL regardless, so a refresh doesn't re-trigger login
     const url = new URL(window.location.href);
     url.searchParams.delete('login');
     if (url.hash === '#login') url.hash = '';
     const q = url.searchParams.toString();
     window.history.replaceState({}, '', url.pathname + (q ? '?' + q : '') + url.hash);
+
+    if (!wantsLogin) return;
+
+    if (window.__ssgSplash) {
+      // Splash is on screen — let it finish, then animate login in (so the
+      // About/Contacts -> Login transition is actually visible).
+      window.__deferLoginOpen = true;
+    } else {
+      openLoginAfterReadyForTransition(openLogin);
+    }
   })();
+
+  /* SPLASH: fade out after a short hold, then run any deferred login transition. */
+  (function runSplash() {
+    const splash = document.getElementById('splashScreen');
+    if (!splash) return;
+
+    const triggerDeferredLogin = () => {
+      if (window.__deferLoginOpen) {
+        window.__deferLoginOpen = false;
+        openLoginAfterReadyForTransition(openLogin);
+      }
+    };
+
+    if (!window.__ssgSplash) {           // skipped this session
+      triggerDeferredLogin();
+      return;
+    }
+
+    const MIN_MS = 1500;                 // minimum time the logo stays up
+    const start = performance.now();
+    const finish = () => {
+      const wait = Math.max(0, MIN_MS - (performance.now() - start));
+      setTimeout(() => {
+        splash.classList.add('splash-hide');
+        setTimeout(() => {
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+          triggerDeferredLogin();
+        }, 600);                         // matches CSS fade (.55s) + buffer
+      }, wait);
+    };
+
+    if (document.readyState === 'complete') finish();
+    else window.addEventListener('load', finish, { once: true });
+  })();
+
 
   /**
    * LOGOUT HANDLER

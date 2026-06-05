@@ -20,6 +20,9 @@ namespace MyMvcApp.Data
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<TreasurerSignature> TreasurerSignatures { get; set; }
+        public DbSet<Report> Reports { get; set; }
+        public DbSet<ReportItem> ReportItems { get; set; }
+        public DbSet<StudentFeeExemption> StudentFeeExemptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -139,9 +142,6 @@ namespace MyMvcApp.Data
                     .HasConversion<string>()
                     .HasDefaultValue(SemesterStatus.Current)
                     .HasColumnName("semester_status");
-                entity.Property(e => e.SemesterStart).HasColumnName("semester_start");
-                entity.Property(e => e.SemesterEnd).HasColumnName("semester_end");
-
                 entity.HasOne(e => e.SchoolYear)
                     .WithMany(sy => sy.FullAmounts)
                     .HasForeignKey(e => e.SchoolYearId)
@@ -268,6 +268,79 @@ namespace MyMvcApp.Data
                     .WithMany()
                     .HasForeignKey(e => e.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Report configuration
+            modelBuilder.Entity<Report>(entity =>
+            {
+                entity.ToTable("reports");
+                entity.HasKey(e => e.ReportId);
+                entity.Property(e => e.ReportId).HasColumnName("report_id");
+                entity.Property(e => e.ReportType).IsRequired().HasMaxLength(20).HasColumnName("report_type");
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(255).HasColumnName("title");
+                entity.Property(e => e.SchoolYearId).HasColumnName("school_year_id");
+                entity.Property(e => e.Semester).HasMaxLength(10).HasColumnName("semester");
+                entity.Property(e => e.DateFrom).HasColumnName("date_from");
+                entity.Property(e => e.DateTo).HasColumnName("date_to");
+                entity.Property(e => e.BeginningBalance).IsRequired().HasPrecision(10, 2).HasColumnName("beginning_balance");
+                entity.Property(e => e.TotalRevenue).IsRequired().HasPrecision(10, 2).HasColumnName("total_revenue");
+                entity.Property(e => e.TotalExpenses).IsRequired().HasPrecision(10, 2).HasColumnName("total_expenses");
+                entity.Property(e => e.RunningBalance).IsRequired().HasPrecision(10, 2).HasColumnName("running_balance");
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(10).HasDefaultValue("Draft").HasColumnName("status");
+                entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+
+                entity.HasOne(e => e.SchoolYear)
+                    .WithMany()
+                    .HasForeignKey(e => e.SchoolYearId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Creator)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(e => e.Items)
+                    .WithOne(i => i.Report)
+                    .HasForeignKey(i => i.ReportId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // StudentFeeExemption configuration
+            modelBuilder.Entity<StudentFeeExemption>(entity =>
+            {
+                entity.HasKey(e => e.ExemptionId);
+                entity.Property(e => e.ExemptionId).HasColumnName("exemption_id");
+                entity.Property(e => e.UserId).IsRequired().HasColumnName("user_id");
+                entity.Property(e => e.SchoolYearId).IsRequired().HasColumnName("school_year_id");
+                entity.Property(e => e.Semester).IsRequired().HasConversion<string>().HasColumnName("semester");
+
+                entity.HasIndex(e => new { e.UserId, e.SchoolYearId, e.Semester })
+                    .IsUnique()
+                    .HasDatabaseName("uq_exemption");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.SchoolYear)
+                    .WithMany()
+                    .HasForeignKey(e => e.SchoolYearId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ReportItem configuration
+            modelBuilder.Entity<ReportItem>(entity =>
+            {
+                entity.ToTable("report_items");
+                entity.HasKey(e => e.ItemId);
+                entity.Property(e => e.ItemId).HasColumnName("item_id");
+                entity.Property(e => e.ReportId).IsRequired().HasColumnName("report_id");
+                entity.Property(e => e.ItemType).IsRequired().HasMaxLength(10).HasColumnName("item_type");
+                entity.Property(e => e.ItemRefId).IsRequired().HasColumnName("item_ref_id");
+                entity.Property(e => e.Description).HasColumnType("text").HasColumnName("description");
+                entity.Property(e => e.Amount).IsRequired().HasPrecision(10, 2).HasColumnName("amount");
             });
         }
     }

@@ -2451,3 +2451,4 @@ C:\Users\ronal\SSG-system2\SSG-System\obj\Debug\net10.0\refint\MyMvcApp.dll
 C:\Users\ronal\SSG-system2\SSG-System\obj\Debug\net10.0\MyMvcApp.pdb
 C:\Users\ronal\SSG-system2\SSG-System\obj\Debug\net10.0\MyMvcApp.genruntimeconfig.cache
 C:\Users\ronal\SSG-system2\SSG-System\obj\Debug\net10.0\ref\MyMvcApp.dll
+C:\Users\ronal\IdeaProjects\Nadd\SSG-System\bin\Debug\net10.0\App_data\main-aura-366405-0b586a2df067.json

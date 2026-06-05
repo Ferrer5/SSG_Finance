@@ -128,6 +128,7 @@ CREATE TABLE other_funds (
   source         VARCHAR(200)  NULL,
   description    TEXT          NULL,
   amount         DECIMAL(10,2) NOT NULL,
+  category       VARCHAR(50)   NULL;
   received_by    INT           NOT NULL,
   received_date  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   school_year_id INT           NULL,
@@ -188,4 +189,45 @@ CREATE TABLE treasurer_signatures (
   CONSTRAINT fk_sig_account
     FOREIGN KEY (account_id) REFERENCES accounts (account_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- 12. reports
+CREATE TABLE reports (
+  report_id        INT           NOT NULL AUTO_INCREMENT,
+  report_type      ENUM('Event','Semester','Annual') NOT NULL,
+  title            VARCHAR(255)  NOT NULL,
+  school_year_id   INT           NULL,
+  semester         ENUM('First','Second') NULL,
+  date_from        DATE          NULL,
+  date_to          DATE          NULL,
+  beginning_balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  total_revenue    DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  total_expenses   DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  running_balance  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  status           ENUM('Draft','Final') NOT NULL DEFAULT 'Draft',
+  created_by       INT           NOT NULL,
+  created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (report_id),
+  CONSTRAINT fk_report_school_year
+    FOREIGN KEY (school_year_id) REFERENCES school_years (school_year_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_report_creator
+    FOREIGN KEY (created_by) REFERENCES accounts (account_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- 13. report_items (tracks which expenses/funds are in each report)
+CREATE TABLE report_items (
+  item_id      INT           NOT NULL AUTO_INCREMENT,
+  report_id    INT           NOT NULL,
+  item_type    ENUM('Expense','Fund') NOT NULL,
+  item_ref_id  INT           NOT NULL,
+  description  TEXT          NULL,
+  amount       DECIMAL(10,2) NOT NULL,
+
+  PRIMARY KEY (item_id),
+  CONSTRAINT fk_report_item_report
+    FOREIGN KEY (report_id) REFERENCES reports (report_id)
+    ON UPDATE CASCADE ON DELETE CASCADE
 );

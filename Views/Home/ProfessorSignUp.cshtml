@@ -188,6 +188,7 @@ html, body {
 
 .password-input,
 .password-wrap .form-input{
+  display:block;
   padding-right:44px !important;
 }
 
@@ -487,30 +488,25 @@ input[type="password"]::-ms-clear{
         </div>
       </div>
 
-      <!-- NAME -->
+      <!-- PERSONAL INFORMATION -->
       <div class="form-section">
-        <div class="section-title">Name</div>
+        <div class="section-title">Personal Information</div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="profFirstName">First Name</label>
             <input type="text" id="profFirstName" class="form-input" placeholder="Enter here" />
           </div>
-          <div class="form-group">
+          <div class="form-group" style="flex:0 0 90px;">
             <label class="form-label" for="profMiddleName">M. I.</label>
-            <input type="text" id="profMiddleName" class="form-input" placeholder="Enter here" maxlength="1" oninput="this.value=this.value.toUpperCase()" />
+            <input type="text" id="profMiddleName" class="form-input" placeholder="M.I." maxlength="2" oninput="autoMiddlePeriod(this)" style="text-align:center;" />
           </div>
           <div class="form-group">
             <label class="form-label" for="profLastName">Last Name</label>
             <input type="text" id="profLastName" class="form-input" placeholder="Enter here" />
           </div>
         </div>
-      </div>
-
-      <!-- CONTACT -->
-      <div class="form-section">
-        <div class="section-title">Contact</div>
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group" style="flex:0 1 50%;">
             <label class="form-label" for="profEmail">Email</label>
             <input type="email" id="profEmail" class="form-input" placeholder="Enter here" />
           </div>
@@ -566,6 +562,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+/* ── Auto-format Middle Initial: single uppercase letter followed by a period ── */
+function autoMiddlePeriod(input){
+    var val = input.value.replace(/\./g, '').toUpperCase(); // strip periods, uppercase
+    input.value = val.length ? val.charAt(0) + '.' : '';     // keep first letter + "."
+}
 
 /* ── Password toggle (shared with student pages) ── */
 function togglePasswordVisibility(btn){

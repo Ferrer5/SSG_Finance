@@ -26,12 +26,6 @@ namespace MyMvcApp.Models
         [Column("semester_status")]
         public SemesterStatus SemesterStatus { get; set; } = SemesterStatus.Current;
 
-        [Column("semester_start")]
-        public DateTime? SemesterStart { get; set; }
-
-        [Column("semester_end")]
-        public DateTime? SemesterEnd { get; set; }
-
         [ForeignKey("SchoolYearId")]
         public SchoolYear SchoolYear { get; set; } = null!;
 

@@ -16,6 +16,10 @@ namespace MyMvcApp.Models
         [Column(TypeName = "text")]
         public string? Description { get; set; }
 
+        [StringLength(50)]
+        [Column("category")]
+        public string? Category { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal Amount { get; set; }

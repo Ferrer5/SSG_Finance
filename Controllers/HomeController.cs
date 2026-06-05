@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
@@ -125,7 +126,23 @@ namespace MyMvcApp.Controllers;
             return RedirectToDashboard(HttpContext.Session.GetString("UserRole"));
         }
 
-        ViewBag.OpenLoginOnLoad = true;
+        // Was login explicitly requested (e.g. the Login nav on About/Contacts -> ?login=1)?
+        bool explicitLogin = Request.Query["login"].ToString() == "1";
+
+        // Did the visitor arrive via internal navigation (same-site referer)?
+        // Clicking Home/About/Contacts within the site sends a same-host Referer;
+        // a fresh entry (typed URL, bookmark, external link) does not.
+        var referer = Request.Headers["Referer"].ToString();
+        bool cameFromSameSite =
+            !string.IsNullOrEmpty(referer) &&
+            Uri.TryCreate(referer, UriKind.Absolute, out var r) &&
+            string.Equals(r.Host, Request.Host.Host, StringComparison.OrdinalIgnoreCase);
+
+        // Pre-open the login panel at first paint ONLY on a genuine fresh entry to the site.
+        //  - Fresh open (no internal referer, no ?login=1)  -> login shown on load.
+        //  - Home from About/Contacts (internal referer)    -> homepage shown (bug fix).
+        //  - Login from About/Contacts (?login=1)           -> landing paints, JS animates login in.
+        ViewBag.OpenLoginOnLoad = !cameFromSameSite && !explicitLogin;
         return View();
     }
 
@@ -169,17 +186,26 @@ namespace MyMvcApp.Controllers;
         return semester == Semester.First ? 1 : 2;
     }
 
-    private static bool IsFeeApplicableToStudent(AcademicProfile? academicProfile, FullAmount fee)
+    private static bool IsFeeApplicableToStudent(
+        AcademicProfile? academicProfile,
+        FullAmount fee,
+        HashSet<(int schoolYearId, Semester semester)>? exemptions = null)
     {
-        // A graduated student, or one who has reached the completion year level (5),
-        // no longer owes any organizational fees.
+        // Students who are no longer active (graduated, transferred, dropped)
+        // or who have reached the completion year level (5) no longer owe fees.
         if (academicProfile != null
             && (academicProfile.AcademicStatus == AcademicStatus.Graduated
+                || academicProfile.AcademicStatus == AcademicStatus.Transferred
+                || academicProfile.AcademicStatus == AcademicStatus.Dropped
                 || academicProfile.YearLevel == 5))
             return false;
 
+        // Semesters explicitly exempted (e.g. gap year during a drop/re-enrollment).
+        if (exemptions != null && exemptions.Contains((fee.SchoolYearId, fee.Semester)))
+            return false;
+
         if (academicProfile?.SchoolYearId == null || academicProfile.SemesterEntered == null)
-            return true;
+            return false;
 
         var entrySchoolYearId = academicProfile.SchoolYearId.Value;
 
@@ -199,15 +225,38 @@ namespace MyMvcApp.Controllers;
         return fee.SchoolYearId > entrySchoolYearId;
     }
 
-    private static bool IsFeeApplicableToStudent(int? schoolYearId, Semester? semesterEntered, FullAmount fee)
+    private static bool IsFeeApplicableToStudent(
+        int? schoolYearId,
+        Semester? semesterEntered,
+        FullAmount fee,
+        HashSet<(int schoolYearId, Semester semester)>? exemptions = null)
     {
+        if (exemptions != null && exemptions.Contains((fee.SchoolYearId, fee.Semester)))
+            return false;
+
         if (schoolYearId == null || semesterEntered == null)
-            return true;
+            return false;
 
         if (fee.SchoolYearId == schoolYearId.Value)
             return GetSemesterOrder(fee.Semester) >= GetSemesterOrder(semesterEntered.Value);
 
         return fee.SchoolYearId > schoolYearId.Value;
+    }
+
+    private async Task<HashSet<(int, Semester)>> GetExemptionsForUserAsync(int userId)
+    {
+        var rows = await _context.StudentFeeExemptions
+            .Where(e => e.UserId == userId)
+            .ToListAsync();
+        return rows.Select(e => (e.SchoolYearId, e.Semester)).ToHashSet();
+    }
+
+    private async Task<Dictionary<int, HashSet<(int, Semester)>>> GetAllExemptionsAsync()
+    {
+        var all = await _context.StudentFeeExemptions.ToListAsync();
+        return all.GroupBy(e => e.UserId)
+                  .ToDictionary(g => g.Key,
+                                g => g.Select(e => (e.SchoolYearId, e.Semester)).ToHashSet());
     }
 
     // ----------------------------------------------------------------
@@ -255,10 +304,11 @@ namespace MyMvcApp.Controllers;
             // student has already paid toward it. A graduated / year-5 student no longer
             // OWES fees (IsFeeApplicableToStudent returns false), but their past payments
             // are real records and must remain visible.
-            var paidFeeIds = studentPayments.Select(p => p.FullAmountId).ToHashSet();
+            var paidFeeIds  = studentPayments.Select(p => p.FullAmountId).ToHashSet();
+            var exemptions  = await GetExemptionsForUserAsync(userId);
 
             allFees = allFees
-                .Where(f => IsFeeApplicableToStudent(academicProfile, f)
+                .Where(f => IsFeeApplicableToStudent(academicProfile, f, exemptions)
                          || paidFeeIds.Contains(f.FullAmountId))
                 .ToList();
 
@@ -1382,8 +1432,9 @@ Best regards,<br>SSG Financial Management System";
                 .Include(f => f.SchoolYear)
                 .ToListAsync();
 
+            var exemptions     = await GetExemptionsForUserAsync(userId);
             var applicableFees = allFees
-                .Where(f => IsFeeApplicableToStudent(academicProfile, f))
+                .Where(f => IsFeeApplicableToStudent(academicProfile, f, exemptions))
                 .ToList();
 
             // Get all of this student's payments
@@ -1809,12 +1860,7 @@ Best regards,<br>SSG Financial Management System";
 
             var feeRecords = await _context.FullAmounts
                 .Where(f => f.Amount > 0)
-            .Select(f => new {
-                f.SchoolYearId,
-                f.Semester,
-                f.SemesterStart,
-                f.SemesterEnd
-            })
+                .Select(f => new { f.SchoolYearId, f.Semester })
                 .ToListAsync();
 
             var result = schoolYears.Select(sy => new {
@@ -1822,14 +1868,12 @@ Best regards,<br>SSG Financial Management System";
                 sy.YearStart,
                 sy.YearEnd,
                 yearStatus     = sy.YearStatus.ToString(),
-                // Show semester as present if it has DATES on the school year itself, not just fee records
                 hasFirst       = sy.FirstSemStart != null || feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First),
                 hasSecond      = sy.SecondSemStart != null || feeRecords.Any(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second),
-                // Prefer SchoolYear columns; fall back to fee records
-                firstSemStart  = (object)(sy.FirstSemStart  ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First).Select(f => f.SemesterStart).FirstOrDefault()),
-                firstSemEnd    = (object)(sy.FirstSemEnd    ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.First).Select(f => f.SemesterEnd).FirstOrDefault()),
-                secondSemStart = (object)(sy.SecondSemStart ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second).Select(f => f.SemesterStart).FirstOrDefault()),
-                secondSemEnd   = (object)(sy.SecondSemEnd   ?? feeRecords.Where(f => f.SchoolYearId == sy.SchoolYearId && f.Semester == Semester.Second).Select(f => f.SemesterEnd).FirstOrDefault()),
+                firstSemStart  = (object)sy.FirstSemStart,
+                firstSemEnd    = (object)sy.FirstSemEnd,
+                secondSemStart = (object)sy.SecondSemStart,
+                secondSemEnd   = (object)sy.SecondSemEnd,
             });
 
             return Json(new { success = true, schoolYears = result });
@@ -2079,22 +2123,6 @@ Best regards,<br>SSG Financial Management System";
             sy.SecondSemStart = request.SecondSemStart;
             sy.SecondSemEnd   = request.SecondSemEnd;
 
-            var firstFee = await _context.FullAmounts
-                .FirstOrDefaultAsync(f => f.SchoolYearId == request.SchoolYearId && f.Semester == Semester.First);
-            if (firstFee != null)
-            {
-                firstFee.SemesterStart = request.FirstSemStart;
-                firstFee.SemesterEnd   = request.FirstSemEnd;
-            }
-
-            var secondFee = await _context.FullAmounts
-                .FirstOrDefaultAsync(f => f.SchoolYearId == request.SchoolYearId && f.Semester == Semester.Second);
-            if (secondFee != null)
-            {
-                secondFee.SemesterStart = request.SecondSemStart;
-                secondFee.SemesterEnd   = request.SecondSemEnd;
-            }
-
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Semester dates updated successfully." });
         }
@@ -2287,24 +2315,6 @@ Best regards,<br>SSG Financial Management System";
             }
 
             await _context.SaveChangesAsync();
-
-            // After saving the FullAmount, sync dates back to SchoolYear
-            var schoolYear = await _context.SchoolYears.FindAsync(request.SchoolYearId);
-            if (schoolYear != null)
-            {
-                if (semester == Semester.First)
-                {
-                    schoolYear.FirstSemStart = existing?.SemesterStart ?? schoolYear.FirstSemStart;
-                    schoolYear.FirstSemEnd   = existing?.SemesterEnd   ?? schoolYear.FirstSemEnd;
-                }
-                else
-                {
-                    schoolYear.SecondSemStart = existing?.SemesterStart ?? schoolYear.SecondSemStart;
-                    schoolYear.SecondSemEnd   = existing?.SemesterEnd   ?? schoolYear.SecondSemEnd;
-                }
-            }
-
-            await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Fee amount set successfully." });
         }
         catch (Exception ex)
@@ -2403,6 +2413,137 @@ Best regards,<br>SSG Financial Management System";
         {
             Console.WriteLine($"Error: {ex}");
             return Json(new { success = false, message = "An error occurred. Please try again." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetStudentPaymentStart([FromBody] SetStudentPaymentStartRequest request)
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            if (!Enum.TryParse<Semester>(request.Semester, out var semester))
+                return Json(new { success = false, message = "Invalid semester value." });
+
+            var sy = await _context.SchoolYears.FindAsync(request.SchoolYearId);
+            if (sy == null)
+                return Json(new { success = false, message = "School year not found." });
+
+            var profile = await _context.AcademicProfiles
+                .FirstOrDefaultAsync(ap => ap.UserId == request.UserId);
+            if (profile == null)
+                return Json(new { success = false, message = "Student academic profile not found." });
+
+            profile.SchoolYearId    = request.SchoolYearId;
+            profile.SemesterEntered = semester;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Payment start updated." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred. Please try again." });
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // STUDENT FEE EXEMPTIONS
+    // ----------------------------------------------------------------
+
+    [HttpGet]
+    public async Task<IActionResult> GetStudentExemptions(int userId)
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            var exemptions = await _context.StudentFeeExemptions
+                .Include(e => e.SchoolYear)
+                .Where(e => e.UserId == userId)
+                .OrderBy(e => e.SchoolYear.YearStart)
+                .ThenBy(e => e.Semester)
+                .Select(e => new
+                {
+                    e.ExemptionId,
+                    e.SchoolYearId,
+                    yearLabel = $"{e.SchoolYear.YearStart}–{e.SchoolYear.YearEnd}",
+                    semester  = e.Semester.ToString()
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, exemptions });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddStudentExemption([FromBody] StudentExemptionRequest request)
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            if (!Enum.TryParse<Semester>(request.Semester, out var semester))
+                return Json(new { success = false, message = "Invalid semester." });
+
+            var exists = await _context.StudentFeeExemptions
+                .AnyAsync(e => e.UserId == request.UserId
+                            && e.SchoolYearId == request.SchoolYearId
+                            && e.Semester == semester);
+            if (exists)
+                return Json(new { success = false, message = "Exemption already exists for that semester." });
+
+            _context.StudentFeeExemptions.Add(new StudentFeeExemption
+            {
+                UserId       = request.UserId,
+                SchoolYearId = request.SchoolYearId,
+                Semester     = semester
+            });
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Exemption added." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveStudentExemption([FromBody] RemoveStudentExemptionRequest request)
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            var exemption = await _context.StudentFeeExemptions
+                .FirstOrDefaultAsync(e => e.ExemptionId == request.ExemptionId);
+            if (exemption == null)
+                return Json(new { success = false, message = "Exemption not found." });
+
+            _context.StudentFeeExemptions.Remove(exemption);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Exemption removed." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred." });
         }
     }
 
@@ -2592,14 +2733,17 @@ Best regards,<br>SSG Financial Management System";
                     .ToListAsync()
                 : new List<OrgFeePayment>();
 
+            var allExemptions = await GetAllExemptionsAsync();
+
             var result = users.Select(u =>
             {
                 var studentPayments = payments
                     .Where(p => p.UserId == u.UserId)
                     .ToList();
 
+                allExemptions.TryGetValue(u.UserId, out var userExemptions);
                 var totalPaid = studentPayments.Sum(p => p.Amount);
-                var isApplicable = currentFee != null && IsFeeApplicableToStudent(u.AcademicProfile, currentFee);
+                var isApplicable = currentFee != null && IsFeeApplicableToStudent(u.AcademicProfile, currentFee, userExemptions);
                 var requiredAmount = isApplicable ? currentFee?.Amount ?? 0 : 0;
                 var lastPayment = studentPayments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
 
@@ -2678,7 +2822,9 @@ Best regards,<br>SSG Financial Management System";
         try
         {
 
-            var students = await GetStudentsAsync();
+            var students = (await GetStudentsAsync())
+                .Where(s => string.Equals(s.AcademicStatus, "Enrolled", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
             SchoolYear? currentSchoolYear;
 
@@ -2724,15 +2870,20 @@ Best regards,<br>SSG Financial Management System";
                 ? $"{currentSchoolYear.YearStart}–{currentSchoolYear.YearEnd}"
                 : "N/A";
 
+            var studentsPageExemptions = await GetAllExemptionsAsync();
+
             var result = students.Select(s =>
             {
                 var studentPayments = allSemPayments.Where(p => p.UserId == s.StudentId).ToList();
-                // Graduated students no longer owe any organizational fees.
-                var isGraduated = string.Equals(s.AcademicStatus, "Graduated", StringComparison.OrdinalIgnoreCase);
-                var firstApplicable = !isGraduated && firstSemFee != null
-                    && IsFeeApplicableToStudent(s.SchoolYearId, s.SemesterEntered, firstSemFee);
-                var secondApplicable = !isGraduated && secondSemFee != null
-                    && IsFeeApplicableToStudent(s.SchoolYearId, s.SemesterEntered, secondSemFee);
+                studentsPageExemptions.TryGetValue(s.StudentId, out var sExemptions);
+                // Inactive students no longer owe any organizational fees.
+                var isInactive = string.Equals(s.AcademicStatus, "Graduated", StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(s.AcademicStatus, "Dropped",   StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(s.AcademicStatus, "Transferred", StringComparison.OrdinalIgnoreCase);
+                var firstApplicable = !isInactive && firstSemFee != null
+                    && IsFeeApplicableToStudent(s.SchoolYearId, s.SemesterEntered, firstSemFee, sExemptions);
+                var secondApplicable = !isInactive && secondSemFee != null
+                    && IsFeeApplicableToStudent(s.SchoolYearId, s.SemesterEntered, secondSemFee, sExemptions);
 
                 var firstPayments = firstSemFee != null
                     ? studentPayments.Where(p => p.FullAmountId == firstSemFee.FullAmountId).ToList()
@@ -2763,6 +2914,9 @@ Best regards,<br>SSG Financial Management System";
                         .Select(r => new { paymentId = p.PaymentId, receiptNumber = r.ReceiptNumber }))
                     .ToList();
 
+                var firstLatest  = firstPayments .OrderByDescending(p => p.PaymentDate).FirstOrDefault();
+                var secondLatest = secondPayments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
+
                 return new
                 {
                     userId = s.StudentId,
@@ -2781,13 +2935,19 @@ Best regards,<br>SSG Financial Management System";
                     secondSemPaid   = secondPaid,
                     firstSemRequired  = firstApplicable ? firstSemFee?.Amount  ?? 0 : 0,
                     secondSemRequired = secondApplicable ? secondSemFee?.Amount ?? 0 : 0,
-                    // Which semester is the current one for THIS school year (drives the
-                    // "Current" header badge and the dashboard breakdown's default semester).
                     firstSemIsCurrent  = firstSemFee  != null && firstSemFee.SemesterStatus  == SemesterStatus.Current,
                     secondSemIsCurrent = secondSemFee != null && secondSemFee.SemesterStatus == SemesterStatus.Current,
                     firstSemReceipts  = firstReceipts,
                     secondSemReceipts = secondReceipts,
-                    lastPaymentDate
+                    lastPaymentDate,
+                    firstSemLastPayDate       = firstLatest?.PaymentDate,
+                    secondSemLastPayDate      = secondLatest?.PaymentDate,
+                    firstSemLatestPaymentId   = firstLatest?.PaymentId,
+                    secondSemLatestPaymentId  = secondLatest?.PaymentId,
+                    firstSemFullAmount        = firstApplicable  ? firstSemFee?.Amount  ?? 0 : 0,
+                    secondSemFullAmount       = secondApplicable ? secondSemFee?.Amount ?? 0 : 0,
+                    schoolYearId              = s.SchoolYearId,
+                    semesterEntered           = s.SemesterEntered?.ToString(),
                 };
             }).ToList();
 
@@ -2829,8 +2989,9 @@ Best regards,<br>SSG Financial Management System";
                 .Include(f => f.SchoolYear)
                 .ToListAsync();
 
+            var exemptions     = await GetExemptionsForUserAsync(userId);
             var applicableFees = allFees
-                .Where(f => IsFeeApplicableToStudent(student.AcademicProfile, f))
+                .Where(f => IsFeeApplicableToStudent(student.AcademicProfile, f, exemptions))
                 .OrderBy(f => f.SchoolYear != null ? f.SchoolYear.YearStart : 0)
                 .ThenBy(f => GetSemesterOrder(f.Semester))
                 .ToList();
@@ -3066,6 +3227,7 @@ Best regards,<br>SSG Financial Management System";
                     f.FundId,
                     f.Source,
                     f.Description,
+                    f.Category,
                     f.Amount,
                     f.ReceivedDate,
                     schoolYear = f.SchoolYear != null
@@ -3294,7 +3456,9 @@ Best regards,<br>SSG Financial Management System";
             if (student == null)
                 return Json(new { success = false, message = "Student not found." });
 
-            if (!IsFeeApplicableToStudent(student.AcademicProfile, targetFee))
+            var studentExemptions = await GetExemptionsForUserAsync(request.UserId);
+
+            if (!IsFeeApplicableToStudent(student.AcademicProfile, targetFee, studentExemptions))
                 return Json(new { success = false, message = "This student is not charged for this semester because they entered after it." });
 
             // RULE: Can't pay for the selected school year until ALL applicable fees from
@@ -3310,7 +3474,7 @@ Best regards,<br>SSG Financial Management System";
                     .ToListAsync();
 
                 var applicablePrevFees = previousYearFees
-                    .Where(f => IsFeeApplicableToStudent(student.AcademicProfile, f))
+                    .Where(f => IsFeeApplicableToStudent(student.AcademicProfile, f, studentExemptions))
                     .OrderBy(f => f.SchoolYear!.YearStart)
                     .ThenBy(f => f.Semester)
                     .ToList();
@@ -3355,7 +3519,7 @@ Best regards,<br>SSG Financial Management System";
                                            && f.Semester == Semester.First);
 
                 if (firstSemFee != null
-                    && IsFeeApplicableToStudent(student.AcademicProfile, firstSemFee))
+                    && IsFeeApplicableToStudent(student.AcademicProfile, firstSemFee, studentExemptions))
                 {
                     var firstSemPaid = await _context.OrgFeePayments
                         .Where(p => p.UserId == request.UserId
@@ -3459,6 +3623,7 @@ Best regards,<br>SSG Financial Management System";
             {
                 Source       = request.Source,
                 Description  = request.Description,
+                Category     = request.Category,
                 Amount       = request.Amount,
                 ReceivedBy   = receivedBy,
                 ReceivedDate = receivedDate,
@@ -3608,6 +3773,7 @@ Best regards,<br>SSG Financial Management System";
 
             fund.Source      = request.Source;
             fund.Description = request.Description;
+            fund.Category    = request.Category;
             fund.Amount      = request.Amount;
             fund.ReceivedDate = request.ReceivedDate ?? fund.ReceivedDate;
 
@@ -3791,8 +3957,10 @@ Best regards,<br>SSG Financial Management System";
                     .ToListAsync()
                 : new List<int>();
 
+            var orgFeeExemptions = await GetAllExemptionsAsync();
+
             var students = users
-                .Where(u => targetFee == null || IsFeeApplicableToStudent(u.AcademicProfile, targetFee))
+                .Where(u => { orgFeeExemptions.TryGetValue(u.UserId, out var ex); return targetFee == null || IsFeeApplicableToStudent(u.AcademicProfile, targetFee, ex); })
                 .Select(u => new {
                     userId      = u.UserId,
                     schoolId    = u.Account!.SchoolId,
@@ -3924,7 +4092,7 @@ public async Task<IActionResult> GetCollectableOrgFee(string? schoolYear = null)
 
                 targetFees = await _context.FullAmounts
                     .Include(f => f.SchoolYear)
-                    .Where(f => f.SchoolYear != null && f.SchoolYear.YearStart <= yStart)  // was ==
+                    .Where(f => f.SchoolYear != null && f.SchoolYear.YearStart == yStart)
                     .ToListAsync();
             }
             else
@@ -3958,23 +4126,28 @@ var feeIds = targetFees.Select(f => f.FullAmountId).ToList();
                 .Where(p => feeIds.Contains(p.FullAmountId))
                 .ToListAsync();
 
+            var collectableExemptions = await GetAllExemptionsAsync();
             decimal totalCollectable = 0;
+            var debtorIds = new HashSet<int>();
 
             // For each target fee, add up what each applicable student still owes on it.
             foreach (var fee in targetFees)
             {
-                foreach (var student in students.Where(u => IsFeeApplicableToStudent(u.AcademicProfile, fee)))
+                foreach (var student in students.Where(u => { collectableExemptions.TryGetValue(u.UserId, out var ex); return IsFeeApplicableToStudent(u.AcademicProfile, fee, ex); }))
                 {
                     var totalPaid = payments
                         .Where(p => p.UserId == student.UserId && p.FullAmountId == fee.FullAmountId)
                         .Sum(p => p.Amount);
 
                     if (totalPaid < fee.Amount)
+                    {
                         totalCollectable += fee.Amount - totalPaid;
+                        debtorIds.Add(student.UserId);
+                    }
                 }
             }
 
-            return Json(new { success = true, collectable = totalCollectable });
+            return Json(new { success = true, collectable = totalCollectable, membersCount = debtorIds.Count });
         }
         catch (Exception ex)
         {
@@ -4353,11 +4526,14 @@ Best regards,<br>SSG Financial Management System";
                     .ToListAsync()
                 : new List<OrgFeePayment>();
 
+            var profDashExemptions = await GetAllExemptionsAsync();
+
             var result = students.Select(u =>
             {
                 var studentPayments = payments.Where(p => p.UserId == u.UserId).ToList();
+                profDashExemptions.TryGetValue(u.UserId, out var uExemptions);
                 var totalPaid       = studentPayments.Sum(p => p.Amount);
-                var isApplicable    = currentFee != null && IsFeeApplicableToStudent(u.AcademicProfile, currentFee);
+                var isApplicable    = currentFee != null && IsFeeApplicableToStudent(u.AcademicProfile, currentFee, uExemptions);
                 var required        = isApplicable ? currentFee?.Amount ?? 0 : 0;
                 var lastPayment     = studentPayments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
 
@@ -4400,11 +4576,208 @@ Best regards,<br>SSG Financial Management System";
         }
     }
 
+    // ----------------------------------------------------------------
+    // REPORTS
+    // ----------------------------------------------------------------
+
+    [HttpGet]
+    public async Task<IActionResult> GetReports()
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            var reports = await _context.Reports
+                .Include(r => r.SchoolYear)
+                .Include(r => r.Creator).ThenInclude(a => a.User)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new
+                {
+                    r.ReportId,
+                    r.ReportType,
+                    r.Title,
+                    r.Status,
+                    r.BeginningBalance,
+                    r.TotalRevenue,
+                    r.TotalExpenses,
+                    r.RunningBalance,
+                    r.Semester,
+                    r.DateFrom,
+                    r.DateTo,
+                    r.CreatedAt,
+                    schoolYear = r.SchoolYear != null ? $"{r.SchoolYear.YearStart}–{r.SchoolYear.YearEnd}" : null,
+                    createdBy = r.Creator != null && r.Creator.User != null
+                        ? $"{r.Creator.User.FirstName} {r.Creator.User.LastName}"
+                        : "Unknown"
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, reports });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred. Please try again." });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetReportDetail(int id)
+    {
+        var guard = RequireAnyRole("Treasurer", "Admin");
+        if (guard != null) return guard;
+
+        try
+        {
+            var report = await _context.Reports
+                .Include(r => r.SchoolYear)
+                .Include(r => r.Creator).ThenInclude(a => a.User)
+                .Include(r => r.Items)
+                .FirstOrDefaultAsync(r => r.ReportId == id);
+
+            if (report == null)
+                return Json(new { success = false, message = "Report not found." });
+
+            return Json(new
+            {
+                success = true,
+                report = new
+                {
+                    report.ReportId,
+                    report.ReportType,
+                    report.Title,
+                    report.Status,
+                    report.BeginningBalance,
+                    report.TotalRevenue,
+                    report.TotalExpenses,
+                    report.RunningBalance,
+                    report.Semester,
+                    report.DateFrom,
+                    report.DateTo,
+                    report.CreatedAt,
+                    schoolYear = report.SchoolYear != null ? $"{report.SchoolYear.YearStart}–{report.SchoolYear.YearEnd}" : null,
+                    createdBy = report.Creator?.User != null
+                        ? $"{report.Creator.User.FirstName} {report.Creator.User.LastName}"
+                        : "Unknown",
+                    items = report.Items.Select(i => new
+                    {
+                        i.ItemId,
+                        i.ItemType,
+                        i.ItemRefId,
+                        i.Description,
+                        i.Amount
+                    })
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred. Please try again." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateReport([FromBody] CreateReportRequest req)
+    {
+        var guard = RequireAnyRole("Treasurer");
+        if (guard != null) return guard;
+
+        try
+        {
+            var accountIdStr = HttpContext.Session.GetString("AccountId");
+            if (!int.TryParse(accountIdStr, out var accountId))
+                return Json(new { success = false, message = "Session expired." });
+
+            // Determine date range
+            DateTime? dateFrom = req.DateFrom.HasValue ? req.DateFrom.Value.Date : null;
+            DateTime? dateTo   = req.DateTo.HasValue   ? req.DateTo.Value.Date   : null;
+
+            // Fetch selected expenses and funds
+            var selectedExpenses = req.ExpenseIds != null && req.ExpenseIds.Count > 0
+                ? await _context.Expenses.Where(e => req.ExpenseIds.Contains(e.ExpenseId)).ToListAsync()
+                : new List<Expense>();
+
+            var selectedFunds = req.FundIds != null && req.FundIds.Count > 0
+                ? await _context.OtherFunds.Where(f => req.FundIds.Contains(f.FundId)).ToListAsync()
+                : new List<OtherFund>();
+
+            // Compute beginning balance = all income - all expenses BEFORE the earliest selected date
+            var allDates = selectedExpenses.Select(e => e.ExpenseDate)
+                .Concat(selectedFunds.Select(f => f.ReceivedDate))
+                .ToList();
+
+            decimal beginningBalance = 0;
+            if (allDates.Any())
+            {
+                var cutoff = allDates.Min();
+                var orgFeesBefore  = await _context.OrgFeePayments.Where(p => p.PaymentDate < cutoff).SumAsync(p => (decimal?)p.Amount) ?? 0;
+                var fundsBefore    = await _context.OtherFunds.Where(f => f.ReceivedDate < cutoff).SumAsync(f => (decimal?)f.Amount) ?? 0;
+                var expBefore      = await _context.Expenses.Where(e => e.ExpenseDate < cutoff).SumAsync(e => (decimal?)e.Amount) ?? 0;
+                beginningBalance   = orgFeesBefore + fundsBefore - expBefore;
+            }
+
+            var totalRevenue  = selectedFunds.Sum(f => f.Amount);
+            var totalExpenses = selectedExpenses.Sum(e => e.Amount);
+            var runningBalance = beginningBalance + totalRevenue - totalExpenses;
+
+            var report = new Report
+            {
+                ReportType        = req.ReportType,
+                Title             = req.Title,
+                SchoolYearId      = req.SchoolYearId,
+                Semester          = req.Semester,
+                DateFrom          = dateFrom,
+                DateTo            = dateTo,
+                BeginningBalance  = beginningBalance,
+                TotalRevenue      = totalRevenue,
+                TotalExpenses     = totalExpenses,
+                RunningBalance    = runningBalance,
+                Status            = "Final",
+                CreatedBy         = accountId,
+                CreatedAt         = DateTime.Now
+            };
+
+            _context.Reports.Add(report);
+            await _context.SaveChangesAsync();
+
+            var items = new List<ReportItem>();
+            foreach (var f in selectedFunds)
+                items.Add(new ReportItem { ReportId = report.ReportId, ItemType = "Fund",    ItemRefId = f.FundId,    Description = f.Description ?? f.Source, Amount = f.Amount });
+            foreach (var e in selectedExpenses)
+                items.Add(new ReportItem { ReportId = report.ReportId, ItemType = "Expense", ItemRefId = e.ExpenseId, Description = e.Description, Amount = e.Amount });
+
+            _context.ReportItems.AddRange(items);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, reportId = report.ReportId });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+            return Json(new { success = false, message = "An error occurred. Please try again." });
+        }
+    }
+
     }
 
 // ----------------------------------------------------------------
 // REQUEST / RESPONSE MODELS
 // ----------------------------------------------------------------
+
+public class CreateReportRequest
+{
+    public string ReportType  { get; set; } = string.Empty;
+    public string Title       { get; set; } = string.Empty;
+    public int?   SchoolYearId { get; set; }
+    public string? Semester   { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo   { get; set; }
+    public List<int> ExpenseIds { get; set; } = new();
+    public List<int> FundIds    { get; set; } = new();
+}
 
 public class LoginRequest
 {
@@ -4564,6 +4937,7 @@ public class AddOrgFeePaymentRequest
     {
         public string? Source { get; set; }
         public string? Description { get; set; }
+        public string? Category { get; set; }
     public decimal Amount { get; set; }
     public DateTime? ReceivedDate { get; set; }
 }
@@ -4585,6 +4959,7 @@ public class UpdateOtherFundRequest
     public int       Id           { get; set; }
     public string?   Source       { get; set; }
     public string?   Description  { get; set; }
+    public string?   Category     { get; set; }
     public decimal   Amount       { get; set; }
     public DateTime? ReceivedDate { get; set; }
 }
@@ -4623,4 +4998,23 @@ public class SetFeeStatusRequest
 {
     public int    FullAmountId { get; set; }
     public string Status       { get; set; } = string.Empty;
+}
+
+public class SetStudentPaymentStartRequest
+{
+    public int    UserId       { get; set; }
+    public int    SchoolYearId { get; set; }
+    public string Semester     { get; set; } = string.Empty;
+}
+
+public class StudentExemptionRequest
+{
+    public int    UserId       { get; set; }
+    public int    SchoolYearId { get; set; }
+    public string Semester     { get; set; } = string.Empty;
+}
+
+public class RemoveStudentExemptionRequest
+{
+    public int ExemptionId { get; set; }
 }
