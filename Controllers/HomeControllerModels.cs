@@ -251,9 +251,7 @@ public class RemoveStudentExemptionRequest
 
 public class ReturnFromLeaveRequest
 {
-    public int    UserId                   { get; set; }
-    // The student's last attended semester; the server exempts every semester
-    // between this and the current term.
-    public int    LastAttendedSchoolYearId { get; set; }
-    public string LastAttendedSemester     { get; set; } = string.Empty; // "First"/"Second"
+    // Only the student is needed; the server derives the last attended term and
+    // the leave gap to exempt automatically. See HomeController.ReturnFromLeave.
+    public int UserId { get; set; }
 }

@@ -446,39 +446,6 @@ Best regards,<br>SSG Financial Management System";
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleAccountActivation([FromBody] DeactivateRequest request)
-
-    {
-        var guard = RequireRole("Admin");
-        if (guard != null) return guard;
-
-        try
-        {
-
-            var account = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.AccountId == request.AccountId);
-
-            if (account == null)
-                return Json(new { success = false, message = "Account not found." });
-
-            account.IsActive = !account.IsActive;
-            await _context.SaveChangesAsync();
-            await _sse.BroadcastAsync("accounts-changed");
-
-            return Json(new {
-                success = true,
-                isActive = account.IsActive,
-                message = account.IsActive ? "Account reactivated." : "Account deactivated."
-            });
-        }
-        catch (Exception ex)
-        {
-            return Json(new { success = false, message = $"Failed: {ex.Message}" });
-        }
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteAccount([FromBody] DeactivateRequest request)
 
     {
@@ -596,6 +563,12 @@ Best regards,<br>SSG Financial Management System";
                     && Enum.TryParse<AcademicStatus>(request.AcademicStatus, out var parsedStatus))
                 {
                     user.AcademicProfile.AcademicStatus = parsedStatus;
+
+                    // Enrollment drives activation: a "Not Enroll" (Dropped) student is
+                    // deactivated and cannot log in; setting them back to Enrolled
+                    // reactivates the account. There is no separate manual toggle.
+                    if (user.Account != null)
+                        user.Account.IsActive = parsedStatus == AcademicStatus.Enrolled;
                 }
             }
 

@@ -400,7 +400,7 @@
     <div class="page-hdr">
       <div>
         <div class="page-title">Dashboard</div>
-        <div class="page-sub">Welcome back, @firstName</div>
+        <div class="page-sub" id="dash-sy-sem">Loading school year…</div>
       </div>
       <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--text-m);background:rgba(39,167,68,.1);border:1px solid rgba(39,167,68,.2);padding:6px 13px;border-radius:8px;display:flex;align-items:center;gap:6px">
         <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;display:inline-block"></span>
@@ -543,8 +543,8 @@
           <th>Photo</th>
           <th>Name</th>
           <th>Course.Year.Section</th>
-          <th><span id="adm-th-sem1-label">Org Fee Balance – 1st Semester</span></th>
-          <th><span id="adm-th-sem2-label">Org Fee Balance – 2nd Semester</span></th>
+          <th><span id="adm-th-sem1-label">Org Fee Balance – 1st Semester</span><span id="adm-th-sem1-badge"></span></th>
+          <th><span id="adm-th-sem2-label">Org Fee Balance – 2nd Semester</span><span id="adm-th-sem2-badge"></span></th>
           <th style="text-align:center">Action</th>
         </tr></thead>
         <tbody id="students-tb">
@@ -951,7 +951,7 @@
       <label style="font-size:11px;color:var(--text-m);display:block;margin-bottom:4px">Status</label>
       <select id="edit-academicStatus" style="width:100%;background:#0a1f10;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%23fff%22 d=%22M7 10l5 5 5-5z%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;background-size:20px">
         <option value="Enrolled">Enrolled</option>
-        <option value="Dropped">Dropped</option>
+        <option value="Dropped">Not Enroll</option>
       </select>
     </div>
 
@@ -959,42 +959,6 @@
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="closeEditModal()" style="padding:9px 20px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--text-m);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
       <button onclick="saveStudent()" style="padding:9px 24px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- RETURN FROM LEAVE MODAL -->
-<div id="returnLeaveModal" style="display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;">
-  <div onclick="closeReturnFromLeaveModal()" style="position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)"></div>
-  <div style="position:relative;z-index:1;background:#0f2918;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 32px;width:100%;max-width:460px;box-shadow:0 24px 60px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div>
-        <div style="font-size:16px;font-weight:700;color:#fff">Return from Leave</div>
-        <div id="rl-sub" style="font-size:11.5px;color:var(--text-m);margin-top:2px">—</div>
-      </div>
-      <button onclick="closeReturnFromLeaveModal()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:var(--text-m);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
-    </div>
-
-    <input type="hidden" id="rl-userid" />
-
-    <div style="font-size:12px;color:var(--text-m);line-height:1.5;margin:14px 0 18px">
-      Re-enrols the student and exempts every semester between when they left and the current term, so they are not back-billed for the time they were away.
-    </div>
-
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;color:var(--text-m);display:block;margin-bottom:4px">Last semester attended</label>
-      <select id="rl-last" onchange="updateReturnPreview()" style="width:100%;background:#0a1f10;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%23fff%22 d=%22M7 10l5 5 5-5z%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;background-size:20px"></select>
-    </div>
-
-    <div style="font-size:12.5px;color:var(--text-m);margin-bottom:14px">
-      Returns at: <strong id="rl-returns" style="color:#fff">—</strong> <span style="color:var(--text-d)">(current term)</span>
-    </div>
-
-    <div id="rl-preview" style="font-size:12px;color:var(--text-m);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;margin:0 0 20px;line-height:1.5;min-height:20px"></div>
-
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeReturnFromLeaveModal()" style="padding:9px 20px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--text-m);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
-      <button id="rl-confirm" onclick="confirmReturnFromLeave()" style="padding:9px 24px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Confirm Return</button>
     </div>
   </div>
 </div>
@@ -1345,145 +1309,31 @@
         document.getElementById('email-feedback').textContent = '';
     }
 
-    // ── RETURN FROM LEAVE ───────────────────────────────────────────────────
-    // School years ordered ascending by start year; each expands into two
-    // semester "slots" so we can range over a leave window the same way the
-    // server does in HomeController.ReturnFromLeave.
-    let RL_SCHOOL_YEARS = [];
-
-    function rlSemLabel(sem) { return sem === 'First' ? '1st Sem' : '2nd Sem'; }
-
-    function rlBuildSlots() {
-        const slots = [];
-        for (const sy of RL_SCHOOL_YEARS) {
-            slots.push({ schoolYearId: sy.schoolYearId, semester: 'First',  label: `${sy.yearLabel} ${rlSemLabel('First')}` });
-            slots.push({ schoolYearId: sy.schoolYearId, semester: 'Second', label: `${sy.yearLabel} ${rlSemLabel('Second')}` });
-        }
-        return slots;
-    }
-
-    function rlSlotIndex(slots, schoolYearId, semester) {
-        return slots.findIndex(s => s.schoolYearId === schoolYearId && s.semester === semester);
-    }
-
-    // The fixed "returns at" end, resolved from the server's current term.
-    let RL_CURRENT_IDX = -1;
-
-    async function openReturnFromLeaveModal(userId) {
-        try {
-            const res  = await fetch(`/Home/GetReturnFromLeaveInfo?userId=${userId}`);
-            if (!res.ok) { showToast(`Failed to load (HTTP ${res.status}).`, 'fail'); return; }
-            const data = await res.json();
-            if (!data.success) { showToast(data.message || 'Failed to load.', 'fail'); return; }
-            if (!data.schoolYears || !data.schoolYears.length) {
-                showToast('No school years configured yet.', 'fail'); return;
-            }
-
-            RL_SCHOOL_YEARS = data.schoolYears; // ascending by YearStart
-            document.getElementById('rl-userid').value = userId;
-
-            const stu = ALL_STUDENTS_PAGE.find(s => s.userId === userId);
-            document.getElementById('rl-sub').textContent = stu ? `${stu.name} · ${stu.schoolId || ''}`.trim() : '';
-
-            const slots   = rlBuildSlots();
-            const lastSel = document.getElementById('rl-last');
-            const returns = document.getElementById('rl-returns');
-            const confirm = document.getElementById('rl-confirm');
-
-            RL_CURRENT_IDX = data.currentTerm
-                ? rlSlotIndex(slots, data.currentTerm.schoolYearId, data.currentTerm.semester)
-                : -1;
-
-            // Can't build a leave window when there's no current term, or when the
-            // current term is the very first semester on record (nothing before it
-            // to exempt). Open the modal anyway with an explanation, Confirm off.
-            if (!data.currentTerm || RL_CURRENT_IDX <= 0) {
-                lastSel.innerHTML = '';
-                returns.textContent = data.currentTerm
-                    ? data.currentTerm.yearLabel + ' ' + rlSemLabel(data.currentTerm.semester)
-                    : '— not set —';
-                document.getElementById('rl-preview').innerHTML = !data.currentTerm
-                    ? '<span style="color:#f87171">No current term is set, so the leave window can\'t be computed. Set the current term first.</span>'
-                    : '<span style="color:#f87171">There are no semesters before the current term, so there is nothing to exempt. Re-enrol this student via Edit → Status = Enrolled.</span>';
-                confirm.disabled = true;
-                confirm.style.opacity = '.5';
-                confirm.style.cursor = 'not-allowed';
-                document.getElementById('returnLeaveModal').style.display = 'flex';
-                return;
-            }
-
-            returns.textContent = data.currentTerm.yearLabel + ' ' + rlSemLabel(data.currentTerm.semester);
-
-            // "Last attended" options: every slot before the current term.
-            lastSel.innerHTML = slots.slice(0, RL_CURRENT_IDX)
-                .map(s => `<option value="${s.schoolYearId}|${s.semester}">${escapeHtml(s.label)}</option>`)
-                .join('');
-
-            // Default to the detected last-attended slot, clamped to before the current term.
-            let defaultIdx = data.lastAttended
-                ? rlSlotIndex(slots, data.lastAttended.schoolYearId, data.lastAttended.semester)
-                : RL_CURRENT_IDX - 1;
-            if (defaultIdx < 0 || defaultIdx >= RL_CURRENT_IDX) defaultIdx = RL_CURRENT_IDX - 1;
-            lastSel.value = `${slots[defaultIdx].schoolYearId}|${slots[defaultIdx].semester}`;
-
-            updateReturnPreview();
-            document.getElementById('returnLeaveModal').style.display = 'flex';
-        } catch (err) {
-            console.error('Return from Leave load error:', err);
-            showToast('Failed to load: ' + (err && err.message ? err.message : err), 'fail');
-        }
-    }
-
-    function updateReturnPreview() {
-        const slots   = rlBuildSlots();
-        const preview = document.getElementById('rl-preview');
-        const confirm = document.getElementById('rl-confirm');
-        const val     = document.getElementById('rl-last').value;
-        if (!val || RL_CURRENT_IDX < 0) return;
-
-        const [syId, sem] = val.split('|');
-        const lastIdx = rlSlotIndex(slots, parseInt(syId), sem);
-
-        // Gap = semesters strictly between last attended and the current term.
-        const gap = slots.slice(lastIdx + 1, RL_CURRENT_IDX);
-        if (gap.length === 0) {
-            preview.innerHTML = 'No gap — the student will simply be re-enrolled, with no exemptions.';
-        } else {
-            preview.innerHTML = `Will re-enrol and exempt <strong>${gap.length}</strong> semester(s): `
-                + gap.map(s => escapeHtml(s.label)).join(', ');
-        }
-        confirm.disabled = false;
-        confirm.style.opacity = '1';
-        confirm.style.cursor = 'pointer';
-    }
-
-    function closeReturnFromLeaveModal() {
-        document.getElementById('returnLeaveModal').style.display = 'none';
-    }
-
-    async function confirmReturnFromLeave() {
-        const userId = parseInt(document.getElementById('rl-userid').value);
-        const val    = document.getElementById('rl-last').value;
-        if (!val) { showToast('Select the last semester attended.', 'fail'); return; }
-        const [syId, sem] = val.split('|');
+    // ── RE-ENROLL ───────────────────────────────────────────────────────────
+    // One click: the server derives the last term the student attended and
+    // automatically skips (exempts) every school year/semester between then and
+    // the current term, so they are not back-billed for the time they were away.
+    async function reEnrollStudent(userId) {
+        const stu = ALL_STUDENTS_PAGE.find(s => s.userId === userId);
+        const who = stu ? ` ${stu.name}` : '';
+        if (!confirm(`Re-enroll${who}? Every school year and semester since they last attended will be skipped automatically.`)) return;
 
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
         try {
             const res  = await fetch('/Home/ReturnFromLeave', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token ?? '' },
-                body:    JSON.stringify({ userId, lastAttendedSchoolYearId: parseInt(syId), lastAttendedSemester: sem })
+                body:    JSON.stringify({ userId })
             });
             const data = await res.json();
             if (data.success) {
-                showToast(data.message || 'Welcomed back.', 'ok');
-                closeReturnFromLeaveModal();
+                showToast(data.message || 'Re-enrolled.', 'ok');
                 refreshStudents();
             } else {
-                showToast(data.message || 'Failed to return student from leave.', 'fail');
+                showToast(data.message || 'Failed to re-enroll student.', 'fail');
             }
         } catch {
-            showToast('Failed to return student from leave.', 'fail');
+            showToast('Failed to re-enroll student.', 'fail');
         }
     }
 
@@ -1630,43 +1480,6 @@
         } catch { 
             showToast('Save failed. Please try again.', 'fail'); 
         }
-    }
-
-    async function toggleActivation(accountId, el) {
-        const row = document.querySelector(`[data-account="${accountId}"]`);
-        const isActive = row.getAttribute('data-active') === 'true';
-        const action = isActive ? 'deactivate' : 'reactivate';
-
-        if (!confirm(`Are you sure you want to ${action} this account?`)) return;
-
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-
-        try {
-            const res = await fetch('/Home/ToggleAccountActivation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token ?? ''
-                },
-                body: JSON.stringify({ accountId: accountId })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                // Re-render from server data so the name cell keeps its role/status
-                // tags and the deactivated styling lands in the right column.
-                showToast(data.message, 'ok');
-                refreshStudents();
-            } else {
-                showToast(data.message, 'fail');
-            }
-        } catch {
-            showToast('Request failed. Please try again.', 'fail');
-        }
-
-        // close the dropdown
-        document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
     }
 
     function showRoleSubmenu(el, accountId) {
@@ -1849,6 +1662,7 @@
             }
             ALL_STUDENTS_PAGE = data.students || [];
             populateStudentsPageFilters();
+            updateSemHeaderIndicators();
             applyStudentsPageFilters();
         } catch {
             if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Failed to load students.</td></tr>';
@@ -1903,16 +1717,13 @@
             const roleTag = s.role === 'Treasurer'
                 ? ' <span style="font-size:10px;font-weight:600;background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.25);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Treasurer</span>'
                 : '';
-            const inactiveTag = !s.isActive
-                ? ' <span style="font-size:10px;font-weight:600;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Deactivated</span>'
-                : '';
             const isGraduated = String(s.yearSection ?? '').trim().split('-')[0].trim() === '5';
             const statusTag = s.academicStatus === 'Dropped'
-                ? ' <span style="font-size:10px;font-weight:600;background:rgba(148,163,184,.15);color:#cbd5e1;border:1px solid rgba(148,163,184,.3);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Dropped</span>'
+                ? ' <span style="font-size:10px;font-weight:600;background:rgba(148,163,184,.15);color:#cbd5e1;border:1px solid rgba(148,163,184,.3);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Not Enroll</span>'
                 : isGraduated
                     ? ' <span style="font-size:10px;font-weight:600;background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.3);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Graduated</span>'
                     : ' <span style="font-size:10px;font-weight:600;background:rgba(39,167,68,.15);color:#5fdd8e;border:1px solid rgba(39,167,68,.3);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Enrolled</span>';
-            return `<tr data-account="${s.accountId}" data-active="${s.isActive}">
+            return `<tr data-account="${s.accountId}">
                 <td class="td-mono td-m">${i + 1}</td>
                 <td class="td-m"><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text)">${escapeHtml(s.schoolId)}</div></td>
                 <td style="padding:8px 10px;vertical-align:middle;width:76px">
@@ -1921,7 +1732,7 @@
                         ${trashBtn}
                     </div>
                 </td>
-                <td style="color:${s.isActive ? 'inherit' : '#f87171'}"><strong>${escapeHtml(s.name)}</strong>${roleTag}${statusTag}${inactiveTag}</td>
+                <td><strong>${escapeHtml(s.name)}</strong>${roleTag}${statusTag}</td>
                 <td class="td-m"><div style="font-size:12px;color:var(--text-m)">${escapeHtml(s.courseCode)} ${escapeHtml(fmtYearSection(s.yearSection))}</div></td>
                 <td>${admSemCell(s.firstSemRequired,  s.firstSemPaid,  s.firstSemStatus)}</td>
                 <td>${admSemCell(s.secondSemRequired, s.secondSemPaid, s.secondSemStatus)}</td>
@@ -1946,9 +1757,9 @@
                                 Edit
                             </div>
                             ${s.academicStatus === 'Dropped' ? `
-                            <div class="dropdown-item reactivate" onclick="openReturnFromLeaveModal(${s.userId})">
+                            <div class="dropdown-item reactivate" onclick="reEnrollStudent(${s.userId})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7.5 4"/><polyline points="3 4 3 8 7 8"/></svg>
-                                Return from Leave
+                                Re-enroll
                             </div>` : ''}
                             <div class="dropdown-item has-submenu" onclick="showRoleSubmenu(this, ${s.accountId})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1964,10 +1775,6 @@
                                         Treasurer
                                     </div>
                                 </div>
-                            </div>
-                            <div class="dropdown-item ${s.isActive ? 'danger' : 'reactivate'}" onclick="toggleActivation(${s.accountId}, this)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                <span>${s.isActive ? 'Deactivate Account' : 'Reactivate Account'}</span>
                             </div>
                             <div class="dropdown-item danger" onclick="deleteStudent(${s.accountId})">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2034,6 +1841,23 @@
         courseSel.innerHTML = '<option value="">All Courses</option>' +
             courses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
         if (prevCourse) courseSel.value = prevCourse;
+    }
+
+    // Put a "Current" badge on whichever semester column is the live one for the
+    // loaded school year. Only the real current semester gets the badge — past
+    // school years show none. Uses the per-student flags from the fees endpoint.
+    function updateSemHeaderIndicators() {
+        const s = ALL_STUDENTS_PAGE[0];
+        let current = null;
+        if (s) {
+            if (s.firstSemIsCurrent) current = 'first';
+            else if (s.secondSemIsCurrent) current = 'second';
+        }
+        const badge = '<span style="font-size:9px;font-weight:700;background:var(--green-glow);color:#5fdd8e;border:1px solid rgba(74,222,128,.3);border-radius:5px;padding:1px 6px;margin-left:6px;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle">Current</span>';
+        const b1 = document.getElementById('adm-th-sem1-badge');
+        const b2 = document.getElementById('adm-th-sem2-badge');
+        if (b1) b1.innerHTML = current === 'first'  ? badge : '';
+        if (b2) b2.innerHTML = current === 'second' ? badge : '';
     }
 
     function applyStudentsPageFilters() {
@@ -2759,6 +2583,7 @@
         refreshSchoolYears();
         refreshCourses();
         refreshFees();
+        loadDashboardTerm();
     });
 
     // ================================================================
@@ -2851,6 +2676,30 @@
             if (admins)     admins.textContent     = data.adminCount     ?? 0;
 
         } catch(e) { console.error('refreshDashboard failed:', e); }
+
+        loadDashboardTerm();
+    }
+
+    // Show the current school year + semester under the Dashboard title,
+    // e.g. "S.Y.: 2025–2026, 1st Semester".
+    async function loadDashboardTerm() {
+        const el = document.getElementById('dash-sy-sem');
+        if (!el) return;
+        try {
+            const res  = await fetch('/Home/GetCurrentSchoolYearAndSemester');
+            const data = await res.json();
+            if (data.success && data.schoolYear) {
+                const sy = data.schoolYear;
+                const semText = data.semester
+                    ? `, ${data.semester.semester === 'First' ? '1st' : '2nd'} Semester`
+                    : '';
+                el.textContent = `S.Y.: ${sy.yearStart}–${sy.yearEnd}${semText}`;
+            } else {
+                el.textContent = 'No active school year set';
+            }
+        } catch {
+            el.textContent = '';
+        }
     }
 
     // ── Global click interceptor ──────────────────────────────────────

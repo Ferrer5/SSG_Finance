@@ -3383,9 +3383,9 @@ function renderStudentsPage(filtered) {
     const roleTag = s.role === 'Treasurer'
       ? ' <span style="font-size:10px;font-weight:600;background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.25);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Treasurer</span>'
       : '';
-    const inactiveTag = !s.isActive
-      ? ' <span style="font-size:10px;font-weight:600;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Inactive</span>'
-      : '';
+    // The treasurer list only contains Enrolled students (not-enrolled students
+    // are filtered out server-side and owe no fees), so there is no inactive/
+    // not-enrolled badge to show here.
 
     // Is the 1st semester settled? (fully paid, or nothing was ever owed.) The
     // 2nd-semester Pay button stays locked until this is true, so payments are
@@ -3422,7 +3422,7 @@ function renderStudentsPage(filtered) {
     return `<tr>
       <td class="td-mono td-m">${i + 1}</td>
       <td class="td-mono td-m">${escapeHtml(s.schoolId)}</td>
-      <td><strong>${escapeHtml(s.name)}</strong>${roleTag}${inactiveTag}</td>
+      <td><strong>${escapeHtml(s.name)}</strong>${roleTag}</td>
       <td class="td-m">${courseYr}</td>
       <td>${semCell(s.firstSemRequired,  s.firstSemPaid,  s.firstSemStatus,  1)}</td>
       <td>${semCell(s.secondSemRequired, s.secondSemPaid, s.secondSemStatus, 2)}</td>
@@ -3883,7 +3883,7 @@ async function initStudentsPageFilters() {
 
         sySel.innerHTML = data.schoolYears.map(sy =>
             `<option value="${sy.yearStart}–${sy.yearEnd}">${sy.yearStart}–${sy.yearEnd}</option>`
-        ).join('') + '<option value="">All School Years</option>';
+        ).join('');
 
         if (currentSY) {
             sySel.value = `${currentSY.yearStart}–${currentSY.yearEnd}`;

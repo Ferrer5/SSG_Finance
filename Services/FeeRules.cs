@@ -51,6 +51,12 @@ public static class FeeRules
         return fee.SchoolYearId > entrySchoolYearId;
     }
 
+    /// <summary>
+    /// "Lite" overload for callers that only have the entry term projected (no full
+    /// AcademicProfile). NOTE: unlike the AcademicProfile overload, this does NOT
+    /// exclude dropped or graduated (year level 5) students — it only does the term
+    /// math. Callers must guard those statuses themselves.
+    /// </summary>
     public static bool IsFeeApplicableToStudent(
         int? schoolYearId,
         Semester? semesterEntered,

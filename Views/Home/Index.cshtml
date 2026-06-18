@@ -1197,6 +1197,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.body.classList.contains('login-open')) closeLogin();
 });
 
+/* Pressing Enter inside the Sign In fields submits the form */
+document.querySelectorAll('#screenSignIn input').forEach(input => {
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleSignIn(); }
+  });
+});
+
 /* ── LEFT PANEL SCREENS ── */
 function showLeftScreen(idx) {
   document.querySelectorAll('.lp-screen').forEach((s,i) => {
@@ -1247,7 +1254,8 @@ function handleSignIn() {
 
   if (!schoolId || !password) { alert('Please enter your CTU ID and password'); return; }
 
-  const btn = event.target;
+  const btn = document.querySelector('#screenSignIn .btn-signin');
+  if (btn.disabled) return;
   const orig = btn.textContent;
   btn.textContent = 'Signing in...';
   btn.disabled = true;

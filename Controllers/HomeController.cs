@@ -493,6 +493,23 @@ namespace MyMvcApp.Controllers;
                 return Json(new { success = false, message = "Your account is not yet approved. Please wait for admin approval." });
             }
 
+            // Students who are not enrolled cannot log in. "Not enrolled" (the
+            // Dropped academic status) is the deactivated state for a student —
+            // there is no separate manual activation toggle.
+            if (account.Role == UserRole.Student)
+            {
+                var notEnrolled = await _context.Users
+                    .Where(u => u.AccountId == account.AccountId)
+                    .Select(u => u.AcademicProfile != null
+                                 && u.AcademicProfile.AcademicStatus == AcademicStatus.Dropped)
+                    .FirstOrDefaultAsync();
+                if (notEnrolled)
+                {
+                    // Not counting this as a failed password attempt (different failure mode)
+                    return Json(new { success = false, message = "Your account is not enrolled. Please approach the administrator to be re-enrolled." });
+                }
+            }
+
             if (!account.IsActive)
             {
                 // Not counting this as a failed password attempt (different failure mode)

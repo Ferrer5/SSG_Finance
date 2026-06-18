@@ -344,8 +344,14 @@ public partial class HomeController : AppController
             {
                 var studentPayments = allSemPayments.Where(p => p.UserId == s.StudentId).ToList();
                 studentsPageExemptions.TryGetValue(s.StudentId, out var sExemptions);
-                // Inactive students no longer owe any organizational fees.
-                var isInactive = string.Equals(s.AcademicStatus, "Dropped", StringComparison.OrdinalIgnoreCase);
+                // Dropped and graduated (year level 5) students no longer owe any
+                // organizational fees. The scalar IsFeeApplicableToStudent overload
+                // used below only does the term math and doesn't know the student's
+                // status or year level, so both are guarded here (this mirrors the
+                // AcademicProfile overload in FeeRules, which checks YearLevel == 5).
+                var isGraduated = string.Equals((s.YearSection ?? "").Split('-')[0].Trim(), "5", StringComparison.Ordinal);
+                var isInactive  = isGraduated
+                    || string.Equals(s.AcademicStatus, "Dropped", StringComparison.OrdinalIgnoreCase);
                 var firstApplicable = !isInactive && firstSemFee != null
                     && FeeRules.IsFeeApplicableToStudent(s.SchoolYearId, s.SemesterEntered, firstSemFee, sExemptions);
                 var secondApplicable = !isInactive && secondSemFee != null

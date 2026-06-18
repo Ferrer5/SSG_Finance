@@ -716,76 +716,6 @@ public partial class HomeController : AppController
         return slots;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetReturnFromLeaveInfo(int userId)
-    {
-        var guard = RequireRole("Admin");
-        if (guard != null) return guard;
-
-        try
-        {
-            var profile = await _context.AcademicProfiles
-                .FirstOrDefaultAsync(ap => ap.UserId == userId);
-            if (profile == null)
-                return Json(new { success = false, message = "Student not found." });
-
-            var schoolYears = await _context.SchoolYears
-                .OrderBy(sy => sy.YearStart)
-                .Select(sy => new
-                {
-                    sy.SchoolYearId,
-                    yearLabel = $"{sy.YearStart}–{sy.YearEnd}",
-                    sy.YearStart
-                })
-                .ToListAsync();
-
-            // The fixed "returns at" end: the canonical current term.
-            var currentTerm = await _context.FullAmounts
-                .Where(f => f.SemesterStatus == SemesterStatus.Current)
-                .OrderByDescending(f => f.SchoolYear.YearStart)
-                .ThenByDescending(f => f.Semester)
-                .Select(f => new
-                {
-                    f.SchoolYearId,
-                    semester  = f.Semester.ToString(),
-                    yearLabel = $"{f.SchoolYear.YearStart}–{f.SchoolYear.YearEnd}"
-                })
-                .FirstOrDefaultAsync();
-
-            // Default for the adjustable end: the most recent semester the
-            // student actually paid for, falling back to their entry point.
-            var lastAttended = await _context.OrgFeePayments
-                .Where(p => p.UserId == userId)
-                .OrderByDescending(p => p.PaymentDate)
-                .Select(p => new
-                {
-                    schoolYearId = p.FullAmount.SchoolYearId,
-                    semester     = p.FullAmount.Semester.ToString()
-                })
-                .FirstOrDefaultAsync();
-
-            if (lastAttended == null && profile.SchoolYearId != null && profile.SemesterEntered != null)
-                lastAttended = new
-                {
-                    schoolYearId = profile.SchoolYearId.Value,
-                    semester     = profile.SemesterEntered.Value.ToString()
-                };
-
-            return Json(new
-            {
-                success = true,
-                schoolYears,
-                currentTerm,
-                lastAttended
-            });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex}");
-            return Json(new { success = false, message = "An error occurred." });
-        }
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReturnFromLeave([FromBody] ReturnFromLeaveRequest request)
@@ -803,10 +733,7 @@ public partial class HomeController : AppController
             if (profile.AcademicStatus != AcademicStatus.Dropped)
                 return Json(new { success = false, message = "Student is not on leave." });
 
-            if (!Enum.TryParse<Semester>(request.LastAttendedSemester, out var lastSem))
-                return Json(new { success = false, message = "Invalid semester." });
-
-            // The server resolves the "returns at" end itself so it can't be tampered with.
+            // The "returns at" end: the canonical current term.
             var currentTerm = await _context.FullAmounts
                 .Where(f => f.SemesterStatus == SemesterStatus.Current)
                 .OrderByDescending(f => f.SchoolYear.YearStart)
@@ -816,50 +743,77 @@ public partial class HomeController : AppController
             if (currentTerm == null)
                 return Json(new { success = false, message = "No current term is set." });
 
+            // The "left at" end is derived automatically — no admin input needed:
+            // the most recent semester the student actually paid for, falling back
+            // to their entry point. That is the last term they attended, so every
+            // semester after it (up to the current term) is the leave gap to skip.
+            var lastAttended = await _context.OrgFeePayments
+                .Where(p => p.UserId == request.UserId)
+                .OrderByDescending(p => p.PaymentDate)
+                .Select(p => new { schoolYearId = p.FullAmount.SchoolYearId, semester = p.FullAmount.Semester })
+                .FirstOrDefaultAsync();
+
+            if (lastAttended == null && profile.SchoolYearId != null && profile.SemesterEntered != null)
+                lastAttended = new { schoolYearId = profile.SchoolYearId.Value, semester = profile.SemesterEntered.Value };
+
             var schoolYears = await _context.SchoolYears
                 .OrderBy(sy => sy.YearStart)
                 .ToListAsync();
             var slots = EnumerateSemesterSlots(schoolYears);
-
-            var lastIdx    = slots.IndexOf((request.LastAttendedSchoolYearId, lastSem));
             var currentIdx = slots.IndexOf((currentTerm.SchoolYearId, currentTerm.Semester));
-            if (lastIdx < 0 || currentIdx < 0)
-                return Json(new { success = false, message = "Selected semester is not a valid school year." });
-            if (lastIdx >= currentIdx)
-                return Json(new { success = false, message = "The last attended semester must come before the current term." });
 
-            var existing = await _context.StudentFeeExemptions
-                .Where(e => e.UserId == request.UserId)
-                .Select(e => new { e.SchoolYearId, e.Semester })
-                .ToListAsync();
-            var existingSet = existing.Select(e => (e.SchoolYearId, e.Semester)).ToHashSet();
-
-            // Exempt every semester strictly between the last attended one and
-            // the current term (the gap). May be empty → just re-enrol.
+            // Exempt every semester strictly between the last attended one and the
+            // current term (the gap). If the last attended term can't be located or
+            // isn't before the current term, there is no gap — we still re-enrol.
             var created = 0;
-            for (var i = lastIdx + 1; i <= currentIdx - 1; i++)
+            if (lastAttended != null && currentIdx > 0)
             {
-                var (syId, sem) = slots[i];
-                if (existingSet.Contains((syId, sem)))
-                    continue;
-
-                _context.StudentFeeExemptions.Add(new StudentFeeExemption
+                var lastIdx = slots.IndexOf((lastAttended.schoolYearId, lastAttended.semester));
+                if (lastIdx >= 0 && lastIdx < currentIdx)
                 {
-                    UserId       = request.UserId,
-                    SchoolYearId = syId,
-                    Semester     = sem
-                });
-                created++;
+                    var existingSet = (await _context.StudentFeeExemptions
+                            .Where(e => e.UserId == request.UserId)
+                            .Select(e => new { e.SchoolYearId, e.Semester })
+                            .ToListAsync())
+                        .Select(e => (e.SchoolYearId, e.Semester))
+                        .ToHashSet();
+
+                    for (var i = lastIdx + 1; i <= currentIdx - 1; i++)
+                    {
+                        var (syId, sem) = slots[i];
+                        if (existingSet.Contains((syId, sem)))
+                            continue;
+
+                        _context.StudentFeeExemptions.Add(new StudentFeeExemption
+                        {
+                            UserId       = request.UserId,
+                            SchoolYearId = syId,
+                            Semester     = sem
+                        });
+                        created++;
+                    }
+                }
             }
 
             profile.AcademicStatus = AcademicStatus.Enrolled;
+
+            // Re-enrolling reactivates the account (enrollment drives activation).
+            var account = await _context.Users
+                .Where(u => u.UserId == request.UserId)
+                .Select(u => u.Account)
+                .FirstOrDefaultAsync();
+            if (account != null)
+                account.IsActive = true;
+
             await _context.SaveChangesAsync();
 
             return Json(new
             {
                 success = true,
                 exemptedCount = created,
-                message = $"Welcomed back. {created} semester(s) exempted."
+                message = created > 0
+                    ? $"Re-enrolled. {created} semester(s) skipped."
+                    : "Re-enrolled."
             });
         }
         catch (Exception ex)
