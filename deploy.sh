@@ -257,18 +257,23 @@ phase_9_deploy() {
     rm -rf "$DEPLOY_DIR/app/wwwroot/uploads" && ln -sf "$DEPLOY_DIR/wwwroot/uploads" "$DEPLOY_DIR/app/wwwroot/uploads" && info "Linked uploads"
   if [ -f "$DEPLOY_DIR/appsettings.json" ]; then
     cp "$DEPLOY_DIR/appsettings.json" "$DEPLOY_DIR/app/appsettings.json" && chmod 600 "$DEPLOY_DIR/app/appsettings.json" && info "Config copied"
+    sed -i "s|uid=root;pwd=[^;]*|uid=$DB_USER;pwd=$DB_PASSWORD|" "$DEPLOY_DIR/app/appsettings.json"
+    sed -i "s|database=ssg_system|database=$DB_NAME|" "$DEPLOY_DIR/app/appsettings.json"
+    info "Connection string injected from .env"
   else
     warn "No appsettings.json. Generating template..."
-    cat > "$DEPLOY_DIR/app/appsettings.json" <<- 'EOF'
+    cat > "$DEPLOY_DIR/app/appsettings.json" <<- EOF
 {
-  "ConnectionStrings": { "DefaultConnection": "" },
+  "ConnectionStrings": {
+    "DefaultConnection": "server=$DB_HOST;database=$DB_NAME;uid=$DB_USER;pwd=$DB_PASSWORD;port=$DB_PORT;"
+  },
   "SmtpSettings": { "Host": "", "Port": 587, "UserName": "", "Password": "", "EnableSsl": true },
   "Logging": { "LogLevel": { "Default": "Warning", "Microsoft.AspNetCore": "Warning", "Microsoft.EntityFrameworkCore": "Warning" } },
   "AllowedHosts": "*"
 }
 EOF
     chmod 600 "$DEPLOY_DIR/app/appsettings.json"
-    warn "!!! EDIT appsettings.json with DB and SMTP credentials !!!"
+    info "Template generated with DB credentials from .env"
   fi
   info "Artifacts: $DEPLOY_DIR/app"
 }
