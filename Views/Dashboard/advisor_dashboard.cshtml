@@ -1,7 +1,7 @@
 @model MyMvcApp.Models.DashboardViewModel
 @{
-    ViewData["Title"] = "Treasurer Dashboard";
-    var firstName     = Context.Session.GetString("FirstName") ?? "Treasurer";
+    ViewData["Title"] = "Advisor Dashboard";
+    var firstName     = Context.Session.GetString("FirstName") ?? "Advisor";
     var lastName      = Context.Session.GetString("LastName") ?? "";
     var middleName    = Context.Session.GetString("MiddleName") ?? "";
     var schoolId      = Context.Session.GetString("SchoolId") ?? "";
@@ -26,7 +26,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="/js/csrf.js"></script>
-<title>SSG Finance - Treasurer</title>
+<title>SSG Finance - Advisor</title>
 <link rel="icon" type="image/png" href="~/images/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -565,7 +565,7 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
     </div>
     <div>
       <div class="sb-brand-name">SSG Finance</div>
-      <div class="sb-brand-sub">Treasurer</div>
+      <div class="sb-brand-sub">Advisor</div>
     </div>
   </div>
 
@@ -580,23 +580,9 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
   </div>
 
   <div class="sb-label">Transactions</div>
-  <div class="nav-item" onclick="showPage('income',this)">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Record Payment
-  </div>
-  <div class="nav-item" onclick="showPage('expenses',this)">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7 7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Record Expense
-  </div>
   <div class="nav-item" onclick="showPage('history',this)">
     <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     Transaction History
-  </div>
-
-  <div class="sb-label">System</div>
-  <div class="nav-item" onclick="showPage('settings',this)">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
-    Settings
   </div>
 
   <div class="sb-spacer"></div>
@@ -614,7 +600,7 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
       </div>
       <div>
         <div class="user-name">@firstName @lastName</div>
-        <div class="user-role">Treasurer</div>
+        <div class="user-role">Advisor</div>
       </div>
     </button>
     <div class="signout" onclick="window.location.href='@Url.Action("Logout", "Home")'">
@@ -672,10 +658,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
     <div class="content-card">
       <div class="cc-hdr">
         <div class="cc-title">Students</div>
-        <button class="btn-primary" onclick="goToOrgFeePayment()" style="display:inline-flex;align-items:center;gap:6px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-          Record Payment
-        </button>
       </div>
       <div class="toolbar">
         <div class="search-box">
@@ -789,7 +771,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
           <th>Status</th>
           <th>Receipt</th>
           <th>Date</th>
-          <th></th>
         </tr></thead>
         <tbody id="history-tbody"></tbody>
       </table>
@@ -993,10 +974,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
     <div class="content-card" id="rpt-list-card">
       <div class="cc-hdr">
         <div class="cc-title">All Reports</div>
-        <button class="btn-primary" onclick="openNewReportModal()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          New Report
-        </button>
       </div>
       <div id="rpt-list-body"><div style="padding:24px;text-align:center;color:var(--text-d);font-size:13px">No reports yet.</div></div>
     </div>
@@ -1046,7 +1023,7 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
           <input type="file" id="avatarFileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleAvatarChange(this)" />
         </div>
         <div class="profile-hero-name">@displayName</div>
-        <div class="profile-hero-role">Treasurer</div>
+        <div class="profile-hero-role">Advisor</div>
       </div>
       <div class="profile-fields">
         <div class="profile-field">
@@ -1097,6 +1074,10 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
       <button class="settings-tab active" onclick="switchSettingsTab('sy',this)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         School Year & Semester
+      </button>
+      <button class="settings-tab" onclick="switchSettingsTab('courses',this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Manage Courses
       </button>
       <button class="settings-tab" onclick="switchSettingsTab('fees',this)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 6v2m0 8v2M9 9.5A3 3 0 0112 8a3 3 0 010 6 3 3 0 00-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -1170,6 +1151,43 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
           <thead><tr><th>#</th><th>School Year</th><th>Semesters</th><th>Status</th><th></th></tr></thead>
           <tbody id="sy-tbody">
             <tr class="empty-row"><td colspan="5">No school years found.</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE COURSES -->
+    <div class="settings-panel" id="settings-courses">
+      <div class="content-card" style="margin-bottom:14px">
+        <div class="cc-hdr"><div class="cc-title">Add Course</div></div>
+        <div style="padding:20px 24px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div>
+              <label class="settings-label">Course Code</label>
+              <input id="course-code" type="text" class="form-input" placeholder="e.g. BSIT" />
+            </div>
+            <div>
+              <label class="settings-label">Course Name</label>
+              <input id="course-name" type="text" class="form-input" placeholder="e.g. BS Information Technology" />
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn-primary" onclick="addCourse()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Add Course
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="cc-hdr"><div class="cc-title">Courses</div><span class="badge by" id="courses-count-badge">0 total</span></div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Code</th><th>Course Name</th><th></th></tr></thead>
+          <tbody id="courses-tbody">
+            <tr class="empty-row"><td colspan="4">No courses found.</td></tr>
           </tbody>
         </table>
         </div>
@@ -1286,8 +1304,8 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
     <div class="modal-hdr"><div><div class="modal-title">Add Transaction</div><div class="modal-sub">Choose a transaction type</div></div><button class="modal-close" onclick="closeModal('modal-pick')">✕</button></div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn-primary" style="justify-content:flex-start;padding:12px 14px" onclick="closeModal('modal-pick');openModal('modal-orgfee')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Student Organizational Fee</button>
-      <button class="btn-outline" style="justify-content:flex-start;padding:12px 14px" onclick="closeModal('modal-pick');setEditDeadlineNotice('fn-deadline-notice','fn-deadline-text',0);openModal('modal-fund')"><span style="font-weight:700;font-size:14px;line-height:1">₱</span>Other Receivable Fund</button>
-      <button class="btn-outline" style="justify-content:flex-start;padding:12px 14px;color:#f87171;border-color:rgba(239,68,68,.2)" onclick="closeModal('modal-pick');setEditDeadlineNotice('ex-deadline-notice','ex-deadline-text',0);openModal('modal-expense')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7 7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Expense</button>
+      <button class="btn-outline" style="justify-content:flex-start;padding:12px 14px" onclick="closeModal('modal-pick');openModal('modal-fund')"><span style="font-weight:700;font-size:14px;line-height:1">₱</span>Other Receivable Fund</button>
+      <button class="btn-outline" style="justify-content:flex-start;padding:12px 14px;color:#f87171;border-color:rgba(239,68,68,.2)" onclick="closeModal('modal-pick');openModal('modal-expense')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7 7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Expense</button>
     </div>
   </div>
 </div>
@@ -1333,10 +1351,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
   <div class="modal-backdrop" onclick="closeModal('modal-fund')"></div>
   <div class="modal-box">
     <div class="modal-hdr"><div><div class="modal-title">Record Other Receivable Fund</div><div class="modal-sub">Donations, grants, fundraising — maps to other_funds</div></div><button class="modal-close" onclick="closeModal('modal-fund')">✕</button></div>
-    <div id="fn-deadline-notice" style="display:none;align-items:flex-start;gap:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.55;color:#fcd34d">
-      <svg style="flex-shrink:0;margin-top:1px" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span id="fn-deadline-text"></span>
-    </div>
     <div class="form-group"><label class="form-label">Source / Received From</label><input class="form-input" id="fn-source" placeholder="e.g. Alumni Association, CHED…"/></div>
     <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="fn-desc" placeholder="e.g. Fundraising proceeds – T-shirt sale"/></div>
     <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="fn-cat"><option>Revenue</option><option>Donation</option><option>Grant</option><option>Fundraising</option><option>Event Proceeds</option><option>Sponsorship</option><option>Other</option></select></div>
@@ -1353,10 +1367,6 @@ td{padding:11px 16px;color:var(--text);vertical-align:middle}
   <div class="modal-backdrop" onclick="closeModal('modal-expense')"></div>
   <div class="modal-box">
     <div class="modal-hdr"><div><div class="modal-title">Add Expense</div><div class="modal-sub">Log an expenditure — maps to expenses table</div></div><button class="modal-close" onclick="closeModal('modal-expense')">✕</button></div>
-    <div id="ex-deadline-notice" style="display:none;align-items:flex-start;gap:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:11.5px;line-height:1.55;color:#fcd34d">
-      <svg style="flex-shrink:0;margin-top:1px" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span id="ex-deadline-text"></span>
-    </div>
     <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="ex-desc" placeholder="e.g. Printing of event tarpaulins"/></div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Amount (₱)</label><input class="form-input" id="ex-amount" type="number" placeholder="0.00"/></div>
@@ -1820,22 +1830,6 @@ document.addEventListener('scroll', closeAllDropdowns, true);
 // ── CONFIG ──────────────────────────────────────────────────────
 let REQ_FEE = 200; // Will be updated from current semester fee
 
-// A transaction can only be edited/deleted within 15 minutes of being created.
-// Kept in sync with EditWindowMinutes on the server (HomeController.TransactionWrites.cs).
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
-
-// Compute the edit deadline (epoch ms) for a record in a timezone-safe way.
-// `serverNowStr` and `recordDateStr` are BOTH server-local naive timestamps, so
-// parsing them with the same Date.parse cancels the browser's timezone offset and
-// yields the record's true age. We then anchor the remaining window to the real
-// clock (Date.now()) so the countdown stays live regardless of timezone.
-function editDeadlineFrom(serverNowStr, recordDateStr) {
-  if (!serverNowStr || !recordDateStr) return 0;
-  const ageMs = Date.parse(serverNowStr) - Date.parse(recordDateStr);
-  if (isNaN(ageMs)) return 0;
-  return Date.now() + (EDIT_WINDOW_MS - ageMs);
-}
-
 // ── DATA STORE ───
 let DB = {
   orgFees: [],
@@ -2108,8 +2102,7 @@ async function loadOrgFeePayments() {
         status: p.paymentStatus,
         receipt: p.receiptNumber || '',
         date: p.paymentDate.split('T')[0],
-        fullDate: p.paymentDate,
-        editDeadline: editDeadlineFrom(data.serverNow, p.paymentDate)
+        fullDate: p.paymentDate
       }));
     }
   } catch (err) {
@@ -2130,8 +2123,7 @@ async function loadOtherFunds() {
         amt: f.amount,
         date: f.receivedDate.split('T')[0],
         fullDate: f.receivedDate,
-        schoolYear: (f.schoolYear || '').replace(/\s*[–-]\s*/g, '–'),
-        editDeadline: editDeadlineFrom(data.serverNow, f.receivedDate)
+        schoolYear: (f.schoolYear || '').replace(/\s*[–-]\s*/g, '–')
       }));
     }
   } catch (err) {
@@ -2152,8 +2144,7 @@ async function loadExpenses() {
         fullDate: e.expenseDate,
         recordedBy: e.recordedBy,
         schoolYear: (e.schoolYear || '').replace(/\s*[–-]\s*/g, '–'),
-        images: e.images || [],
-        editDeadline: editDeadlineFrom(data.serverNow, e.expenseDate)
+        images: e.images || []
       }));
     }
   } catch (err) {
@@ -2319,7 +2310,6 @@ function allTransactions() {
         fullDate: x.fullDate || x.date,  // ← use full timestamp
         receipt: x.receipt || '—',
         src: 'OrgFee',
-        editDeadline: x.editDeadline,
         sid: x.id,
         schoolYear: x.schoolYear || null,
         studentName: x.name,
@@ -2342,7 +2332,6 @@ function allTransactions() {
         fullDate: x.fullDate || x.date,  // ← use full timestamp
         receipt: 'N/A',
         src: 'OtherFund',
-        editDeadline: x.editDeadline,
         sid: x.id,
         schoolYear: x.schoolYear || null,
         studentName: '',
@@ -2365,7 +2354,6 @@ function allTransactions() {
         fullDate: x.fullDate || x.date,  // ← use full timestamp
         receipt: 'N/A',
         src: 'Expense',
-        editDeadline: x.editDeadline,
         sid: x.id,
         schoolYear: x.schoolYear || null,
         images: x.images || [],
@@ -2576,32 +2564,16 @@ async function renderHistory() {
           <td>${feeStatusBadge('Unpaid')}</td>
           <td class="td-m" style="color:var(--text-d)">—</td>
           <td class="td-mono td-m">—</td>
-          <td></td>
         </tr>`).join('');
   }
 
   // Rows from existing transactions
+  const _histOneMonthAgo = new Date(); _histOneMonthAgo.setMonth(_histOneMonthAgo.getMonth() - 1);
   const txRows = tx.map(t => {
     const isOrg = t.src === 'OrgFee';
     const semLabel = t.sem === 'First' ? '1st Sem' : t.sem === 'Second' ? '2nd Sem' : 'N/A';
     const hasReceipt = isOrg && t.receipt && t.receipt !== '—';
-    const editCall = isOrg
-      ? `editIncome('OrgFee',${t.sid})`
-      : `editTransaction('${t.src}',${t.sid})`;
-    const txTooOld = !(t.editDeadline && Date.now() < t.editDeadline);
-    const editIcon   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-    const deleteIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-    const infoIcon   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`;
-    const editBtn = txTooOld
-      ? `<div style="display:inline-flex;gap:6px;align-items:center;justify-content:flex-end">
-           <button type="button" class="btn-outline" disabled title="Locked — a transaction can only be edited or deleted within 15 minutes after it was recorded" style="padding:5px 7px;opacity:.4;cursor:not-allowed;display:inline-flex">${editIcon}</button>
-           <button type="button" class="btn-outline" disabled title="Locked — a transaction can only be edited or deleted within 15 minutes after it was recorded" style="padding:5px 7px;opacity:.4;cursor:not-allowed;display:inline-flex">${deleteIcon}</button>
-         </div>`
-      : `<div style="display:inline-flex;gap:6px;align-items:center;justify-content:flex-end">
-           <div class="tip-wrap"><button type="button" class="btn-outline" style="padding:5px 7px;display:inline-flex" onclick="${editCall}">${editIcon}</button><span class="tip">Edit</span></div>
-           <div class="tip-wrap"><button type="button" class="btn-danger" style="padding:5px 7px;display:inline-flex" onclick="deleteTx('${t.src}',${t.sid})">${deleteIcon}</button><span class="tip">Delete</span></div>
-           <div class="tip-wrap"><span style="display:inline-flex;align-items:center;color:var(--text-d);cursor:default">${infoIcon}</span><span class="tip">Can be edited or deleted only within 15 minutes after it was recorded</span></div>
-         </div>`;
+    // Advisor view is read-only — no edit/delete actions.
     return `
     <tr>
       <td><strong>${escapeHtml(t.paymentType)}</strong></td>
@@ -2613,7 +2585,6 @@ async function renderHistory() {
       <td>${isOrg ? feeStatusBadge(t.status) : '<span class="td-m" style="color:var(--text-d)">N/A</span>'}</td>
       <td>${isOrg ? renderReceiptCell(t.sid, t.receipt, hasReceipt) : expenseReceiptCell(t.images)}</td>
       <td class="td-mono td-m">${fd(t.date)}</td>
-      <td>${editBtn}</td>
     </tr>`;
   }).join('');
 
@@ -3418,8 +3389,6 @@ function renderStudentsPage(filtered) {
       }
       return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         ${balSpan}
-        <button type="button" class="btn-primary" style="padding:2px 10px;font-size:10.5px;border-radius:5px"
-                onclick="quickPayStudent(${s.userId}, ${semNum}, ${parseInt(s.schoolYear) || 'null'})">Pay</button>
       </div>`;
     };
 
@@ -3438,13 +3407,6 @@ function renderStudentsPage(filtered) {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
             <span class="tip">Ledger</span>
-          </div>
-          <div class="tip-wrap">
-            <button class="${s.schoolYearId ? 'btn-outline' : 'btn-primary'}" style="padding:5px 7px;display:inline-flex;align-items:center;justify-content:center"
-                    onclick="openPaymentStartModal(${s.userId})">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            </button>
-            <span class="tip">Set the term from which the student begins to be charged fees</span>
           </div>
         </div>
       </td>
@@ -3838,7 +3800,7 @@ function openSemPaymentEdit(paymentId, currentPaid, fullAmount, label) {
   const fee = (DB.orgFees || []).find(f => f.id === paymentId);
   document.getElementById('edit-orgfee-receipt').value = fee ? (fee.receipt || '') : '';
   checkEditPaymentStatus();
-  updateEditOrgFeeNotice(fee ? fee.editDeadline : null);
+  updateEditOrgFeeNotice(fee ? (fee.fullDate || fee.date || null) : null);
   openModal('modal-edit-orgfee');
 }
 
@@ -4081,19 +4043,11 @@ async function openStudentOrgFeeModal(userId) {
       // Edit button — valid only within 30 days of the most recent payment
       const sortedPays = g.payments.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
       const latestPay  = sortedPays[0];
-      const latestDeadline = latestPay ? editDeadlineFrom(data.serverNow, latestPay.date) : 0;
-      const canEdit = latestPay && latestPay.paymentId && latestDeadline && Date.now() < latestDeadline;
+      const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const canEdit = latestPay && latestPay.paymentId && new Date(latestPay.date) >= thirtyDaysAgo;
       const editSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-      const editAction = canEdit
-        ? `<div class="tip-wrap">
-             <button class="btn-outline" style="padding:5px 7px;display:inline-flex;align-items:center;justify-content:center"
-                     onclick="editPaymentFromModal(${latestPay.paymentId})">${editSvg}</button>
-             <span class="tip">Edit payment</span>
-           </div>`
-        : `<div class="tip-wrap">
-             <button class="btn-outline" disabled style="padding:5px 7px;display:inline-flex;align-items:center;justify-content:center;opacity:.35;cursor:not-allowed">${editSvg}</button>
-             <span class="tip">${latestPay ? 'Locked — older than 15 minutes' : 'No payment to edit'}</span>
-           </div>`;
+      // Advisor view is read-only — no edit action.
+      const editAction = '';
 
       return `<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
         <td style="padding:10px 12px;color:var(--text-m);font-size:11px">${idx + 1}</td>
@@ -4634,6 +4588,7 @@ async function switchSettingsTab(name, btn) {
   if (btn) btn.classList.add('active');
 
   if (name === 'sy')      await refreshSchoolYears();
+  if (name === 'courses') await refreshCourses();
   if (name === 'fees') {
     await refreshFees();
     await populateFeeSySemDropdown();
@@ -5401,27 +5356,31 @@ async function downloadTreasurerReceiptPDF() {
   }
 }
 
-// Populate an edit-deadline notice (shown in the edit modals). Hidden when there's
-// no live window. `noun` tailors the wording per transaction type.
-// deadlineEpoch — epoch ms when the 15-minute edit window closes (see editDeadlineFrom).
-function setEditDeadlineNotice(noticeId, textId, deadlineEpoch, noun) {
-  const notice = document.getElementById(noticeId);
-  const textEl = document.getElementById(textId);
+// Populate the edit-deadline notice inside modal-edit-orgfee.
+// payDateStr — ISO date/datetime string of the original payment.
+function updateEditOrgFeeNotice(payDateStr) {
+  const notice  = document.getElementById('edit-orgfee-deadline-notice');
+  const textEl  = document.getElementById('edit-orgfee-deadline-text');
   if (!notice || !textEl) return;
 
-  const now = Date.now();
-  if (!deadlineEpoch || now >= deadlineEpoch) { notice.style.display = 'none'; return; }
+  if (!payDateStr) { notice.style.display = 'none'; return; }
 
-  const minsLeft    = Math.ceil((deadlineEpoch - now) / (1000 * 60));
-  const deadlineStr = new Date(deadlineEpoch).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  textEl.textContent = `This ${noun || 'record'} becomes read-only at ${deadlineStr}. `
-    + `Please complete any corrections before then `
-    + `(${minsLeft} minute${minsLeft === 1 ? '' : 's'} remaining).`;
-  notice.style.display = 'flex';
-}
+  const payDate      = new Date(payDateStr);
+  const deadline     = new Date(payDate);
+  deadline.setMonth(deadline.getMonth() + 1);
 
-function updateEditOrgFeeNotice(deadlineEpoch) {
-  setEditDeadlineNotice('edit-orgfee-deadline-notice', 'edit-orgfee-deadline-text', deadlineEpoch, 'payment record');
+  const now          = new Date();
+  const daysLeft     = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+  const deadlineStr  = deadline.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+  if (daysLeft > 0) {
+    textEl.textContent = `This payment record will become read-only on ${deadlineStr}. `
+      + `Please complete any corrections before that date `
+      + `(${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining).`;
+    notice.style.display = 'flex';
+  } else {
+    notice.style.display = 'none';
+  }
 }
 
 function editIncome(type, id) {
@@ -5439,7 +5398,7 @@ function editIncome(type, id) {
     document.getElementById('edit-orgfee-full-amount').value = REQ_FEE;
 
     checkEditPaymentStatus();
-    updateEditOrgFeeNotice(fee.editDeadline);
+    updateEditOrgFeeNotice(fee.fullDate || fee.date || null);
     openModal('modal-edit-orgfee');
 
   } else {
@@ -5451,7 +5410,6 @@ function editIncome(type, id) {
     document.getElementById('fn-cat').value    = fund.cat   || 'Other';
     document.getElementById('fn-amount').value = fund.amt   || '';
     document.getElementById('fn-date').value   = fund.date  || today();
-    setEditDeadlineNotice('fn-deadline-notice', 'fn-deadline-text', fund.editDeadline, 'fund record');
     openModal('modal-fund');
     document.querySelector('#modal-fund .btn-primary').setAttribute('data-edit-id', id);
     document.querySelector('#modal-fund .btn-primary').onclick = () => updateFund(id);
@@ -5570,7 +5528,6 @@ function editTransaction(src, id) {
     document.getElementById('fn-cat').value    = fund.cat    || 'Other';
     document.getElementById('fn-amount').value = fund.amt    || '';
     document.getElementById('fn-date').value   = fund.date   || today();
-    setEditDeadlineNotice('fn-deadline-notice', 'fn-deadline-text', fund.editDeadline, 'fund record');
     openModal('modal-fund');
     document.querySelector('#modal-fund .btn-primary').onclick = () => updateFund(id);
 
@@ -5580,7 +5537,6 @@ function editTransaction(src, id) {
     document.getElementById('ex-desc').value   = exp.desc || '';
     document.getElementById('ex-amount').value = exp.amt  || '';
     document.getElementById('ex-date').value   = exp.date || today();
-    setEditDeadlineNotice('ex-deadline-notice', 'ex-deadline-text', exp.editDeadline, 'expense record');
     openModal('modal-expense');
     document.querySelector('#modal-expense .btn-primary').onclick = () => updateExpense(id);
   }
@@ -5735,6 +5691,7 @@ async function refreshTreasurerPages(pages) {
                 if (!activePanel) break;
                 const panelId = activePanel.id.replace('settings-', '');
                 if (panelId === 'sy')        await refreshSchoolYears();
+                if (panelId === 'courses')   await refreshCourses();
                 if (panelId === 'fees')      await refreshFees();
                 if (panelId === 'signature') await refreshSignature();
                 break;
@@ -5777,9 +5734,6 @@ async function loadReports() {
         <div class="rpt-title">${escapeHtml(r.title)}</div>
         <div class="rpt-meta">${r.schoolYear || ''}${r.semester ? ' · ' + r.semester + ' Sem' : ''}${r.dateFrom ? ' · ' + r.dateFrom.substring(0,10) : ''}</div>
         <div class="rpt-bal">${fmt(r.runningBalance)}</div>
-        <button class="rpt-del" title="Delete report" aria-label="Delete report" onclick="event.stopPropagation(); deleteReport(${r.reportId}, this)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-        </button>
       </div>`).join('');
   } catch { /* silent */ }
 }

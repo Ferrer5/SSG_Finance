@@ -64,6 +64,11 @@ public class ChangePasswordRequest
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
+public class UpdateMyEmailRequest
+{
+    public string Email { get; set; } = string.Empty;
+}
+
 public class ResetPasswordViewModel
 {
     public string Token     { get; set; } = string.Empty;

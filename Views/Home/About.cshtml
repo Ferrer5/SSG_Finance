@@ -351,23 +351,32 @@ body { scrollbar-width: none; }
     <ul>
       <li>Easy monitoring of organizational fee status</li>
       <li>Transparent financial tracking</li>
-      <li>Digital payment processing</li>
+      <li>Digital payment recording</li>
       <li>Automated receipt generation</li>
       <li>Real-time balance updates</li>
     </ul>
   </div>
   
   <div class="content-card">
+    <h2>Who It's For</h2>
+    <ul>
+      <li><strong>Students</strong> — view their organizational fee balance, payment status, and receipts.</li>
+      <li><strong>Treasurers</strong> — record payments, funds, and expenses, and generate financial reports.</li>
+      <li><strong>Professors</strong> — view students and their organizational fee payment status.</li>
+      <li><strong>Advisors</strong> — monitor the treasurer's records and reports with read-only oversight.</li>
+      <li><strong>Admins</strong> — manage accounts, approvals, and system settings.</li>
+    </ul>
+  </div>
+
+  <div class="content-card">
     <h2>Our Mission</h2>
     <p>To promote financial transparency and accountability within the student government, ensuring every student has access to clear information about their organizational fee contributions.</p>
   </div>
-  
-  <div class="content-card">
-    <h2>Contact Information</h2>
-    <p><strong>Facebook Group:</strong> <a href="https://www.facebook.com/groups/308772583908264" target="_blank" rel="noopener noreferrer" style="color: var(--green);">CTU Ginatilan SSG</a></p>
-    <p><strong>Facebook Page:</strong> <a href="https://www.facebook.com/profile.php?id=61580269426838" target="_blank" rel="noopener noreferrer" style="color: var(--green);">SSG Official</a></p>
-  </div>
 </main>
+
+<footer style="position:relative;z-index:10;text-align:center;padding:20px;margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.45);font-size:12px;letter-spacing:0.04em;">
+  © @DateTime.Now.Year BSIT Students<button type="button" class="dev-credit-btn" onclick="openDevModal()" aria-label="About the developers" title="About the developers"><ion-icon name="help-circle-outline"></ion-icon></button> · Supreme Student Government — CTU Ginatilan
+</footer>
 
 <script>
 function toggleMobileNav() {
@@ -417,5 +426,6 @@ setInterval(updateClock, 1000);
 updateClock();
 </script>
 
+@await Html.PartialAsync("_DeveloperModal")
 </body>
 </html>

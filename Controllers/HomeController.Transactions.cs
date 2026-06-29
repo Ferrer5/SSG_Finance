@@ -18,7 +18,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetCurrentSchoolYearAndSemester()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -63,7 +63,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetOrgFeePayments()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -107,7 +107,10 @@ public partial class HomeController : AppController
                 })
                 .ToListAsync();
 
-            return Json(new { success = true, payments });
+            // serverNow lets the client measure each record's age against the SAME
+            // clock that produced its stored date, so the browser's timezone cancels
+            // out (used to gate the 15-minute edit/delete window).
+            return Json(new { success = true, payments, serverNow = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") });
         }
         catch (Exception ex)
         {
@@ -119,7 +122,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetRecentPayments()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -169,7 +172,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetProfessorStudentPayments()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -280,7 +283,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetTreasurerStudentsWithFees(string? schoolYear = null)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -441,7 +444,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetStudentOrgFeeDetails(int userId)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -549,7 +552,8 @@ public partial class HomeController : AppController
                 },
                 schoolYear = schoolYearLabel,
                 fees,
-                transactions
+                transactions,
+                serverNow = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")
             });
         }
         catch (Exception ex)
@@ -591,7 +595,8 @@ public partial class HomeController : AppController
             var isStaff =
                 string.Equals(role, UserRole.Admin.ToString(), StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(role, UserRole.Treasurer.ToString(), StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(role, UserRole.Professor.ToString(), StringComparison.OrdinalIgnoreCase);
+                string.Equals(role, UserRole.Professor.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(role, UserRole.Advisor.ToString(), StringComparison.OrdinalIgnoreCase);
 
             if (!isStaff && payment.UserId != requesterUserId)
                 return Json(new { success = false, message = "Receipt not available." });
@@ -691,7 +696,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetOtherFunds()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -719,7 +724,7 @@ public partial class HomeController : AppController
                 })
                 .ToListAsync();
 
-            return Json(new { success = true, funds });
+            return Json(new { success = true, funds, serverNow = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") });
         }
         catch (Exception ex)
         {
@@ -731,7 +736,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetExpenses()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -758,7 +763,7 @@ public partial class HomeController : AppController
                 })
                 .ToListAsync();
 
-            return Json(new { success = true, expenses });
+            return Json(new { success = true, expenses, serverNow = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") });
         }
         catch (Exception ex)
         {
@@ -770,7 +775,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetTreasurerDashboardStats()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try

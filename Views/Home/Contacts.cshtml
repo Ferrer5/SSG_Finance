@@ -1,3 +1,4 @@
+@model MyMvcApp.Models.ContactViewModel
 @{
     ViewData["Title"] = "Contacts - SSG Portal";
 }
@@ -273,30 +274,6 @@ body.login-open #heroOverlay {
 
 .contact-info a:hover { color: var(--green); }
 
-.social-links {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.social-links a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  color: var(--white);
-  font-size: 20px;
-  transition: all 0.2s ease;
-}
-
-.social-links a:hover {
-  background: var(--green);
-  transform: translateY(-2px);
-}
-
 @@media (prefers-reduced-motion: reduce) {
   .navbar, .page-title, .content-card {
     animation: none !important;
@@ -400,26 +377,51 @@ body { scrollbar-width: none; }
     <h2>Get in Touch</h2>
     <p>Reach the Student Government through any of the channels below.</p>
 
+    @foreach (var t in Model.Treasurers)
+    {
+      <div class="contact-item">
+        <div class="contact-icon">
+          <ion-icon name="person-outline"></ion-icon>
+        </div>
+        <div class="contact-info">
+          <h3>@t.Name <span style="font-weight:500;color:var(--green);font-size:13px">· @t.Role</span></h3>
+          <a href="mailto:@t.Email">@t.Email</a>
+        </div>
+      </div>
+    }
+    @if (Model.Treasurers.Count == 0)
+    {
+      <div class="contact-item">
+        <div class="contact-icon">
+          <ion-icon name="mail-outline"></ion-icon>
+        </div>
+        <div class="contact-info">
+          <h3>Treasurer</h3>
+          <p>No treasurer contact is available right now — please use the form below or reach us on Facebook.</p>
+        </div>
+      </div>
+    }
+
     <div class="contact-item">
       <div class="contact-icon">
         <ion-icon name="logo-facebook"></ion-icon>
       </div>
       <div class="contact-info">
-        <h3>Facebook Group</h3>
-        <a href="https://www.facebook.com/groups/308772583908264" target="_blank" rel="noopener noreferrer">CTU Ginatilan SSG</a>
+        <h3>CTU Ginatilan Support Group</h3>
+        <a href="https://www.facebook.com/share/g/1Bn9obDsqg/" target="_blank" rel="noopener noreferrer">CTU Ginatilan Support Group</a>
       </div>
     </div>
-    
+
     <div class="contact-item">
       <div class="contact-icon">
         <ion-icon name="logo-facebook"></ion-icon>
       </div>
       <div class="contact-info">
-        <h3>Facebook Page</h3>
-        <a href="https://www.facebook.com/profile.php?id=61580269426838" target="_blank" rel="noopener noreferrer">SSG Official</a>
+        <h3>CTU Ginatilan - Supreme Student Government</h3>
+        <a href="https://www.facebook.com/profile.php?id=61580269426838" target="_blank" rel="noopener noreferrer">CTU Ginatilan - Supreme Student Government</a>
       </div>
     </div>
-    
+
     <div class="contact-item">
       <div class="contact-icon">
         <ion-icon name="location-outline"></ion-icon>
@@ -430,20 +432,12 @@ body { scrollbar-width: none; }
       </div>
     </div>
   </div>
-  
-  <div class="content-card">
-    <h2>Follow Us</h2>
-    <p>Stay updated with the latest news and announcements from the Student Government.</p>
-    <div class="social-links">
-      <a href="https://www.facebook.com/groups/308772583908264" target="_blank" rel="noopener noreferrer" aria-label="Facebook Group">
-        <ion-icon name="logo-facebook"></ion-icon>
-      </a>
-      <a href="https://www.facebook.com/profile.php?id=61580269426838" target="_blank" rel="noopener noreferrer" aria-label="Facebook Page">
-        <ion-icon name="logo-facebook"></ion-icon>
-      </a>
-    </div>
-  </div>
+
 </main>
+
+<footer style="position:relative;z-index:10;text-align:center;padding:20px;margin-top:8px;border-top:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.45);font-size:12px;letter-spacing:0.04em;">
+  © @DateTime.Now.Year BSIT Students<button type="button" class="dev-credit-btn" onclick="openDevModal()" aria-label="About the developers" title="About the developers"><ion-icon name="help-circle-outline"></ion-icon></button> · Supreme Student Government — CTU Ginatilan
+</footer>
 
 <script>
 function toggleMobileNav() {
@@ -481,5 +475,6 @@ setInterval(updateClock, 1000);
 updateClock();
 </script>
 
+@await Html.PartialAsync("_DeveloperModal")
 </body>
 </html>

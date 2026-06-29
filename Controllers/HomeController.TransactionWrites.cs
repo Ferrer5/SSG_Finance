@@ -11,6 +11,15 @@ namespace MyMvcApp.Controllers;
 
 public partial class HomeController : AppController
 {
+    // A transaction may only be edited or deleted within this many minutes of being
+    // created. The creation time is the record's stored date (PaymentDate / ReceivedDate /
+    // ExpenseDate), each of which defaults to DateTime.Now when the record is added.
+    private const int EditWindowMinutes = 15;
+    private const string EditWindowMessage =
+        "This transaction can no longer be changed — transactions may only be edited or deleted within 15 minutes of being created.";
+    private static bool WithinEditWindow(DateTime createdAt) =>
+        (DateTime.Now - createdAt).TotalMinutes <= EditWindowMinutes;
+
     [HttpPost]
     public async Task<IActionResult> AddOrgFeePayment([FromBody] AddOrgFeePaymentRequest request)
     {
@@ -390,6 +399,9 @@ public partial class HomeController : AppController
             if (payment == null)
                 return Json(new { success = false, message = "Payment not found." });
 
+            if (!WithinEditWindow(payment.PaymentDate))
+                return Json(new { success = false, message = EditWindowMessage });
+
             if (payment.Receipts.Any())
                 _context.Receipts.RemoveRange(payment.Receipts);
 
@@ -418,6 +430,9 @@ public partial class HomeController : AppController
             if (fund == null)
                 return Json(new { success = false, message = "Fund not found." });
 
+            if (!WithinEditWindow(fund.ReceivedDate))
+                return Json(new { success = false, message = EditWindowMessage });
+
             _context.OtherFunds.Remove(fund);
             await _context.SaveChangesAsync();
 
@@ -441,6 +456,9 @@ public partial class HomeController : AppController
             var fund = await _context.OtherFunds.FindAsync(request.Id);
             if (fund == null)
                 return Json(new { success = false, message = "Fund not found." });
+
+            if (!WithinEditWindow(fund.ReceivedDate))
+                return Json(new { success = false, message = EditWindowMessage });
 
             fund.Source      = request.Source;
             fund.Description = request.Description;
@@ -472,6 +490,9 @@ public partial class HomeController : AppController
 
             if (payment == null)
                 return Json(new { success = false, message = "Payment not found." });
+
+            if (!WithinEditWindow(payment.PaymentDate))
+                return Json(new { success = false, message = EditWindowMessage });
 
             // Reject a receipt number already used by a DIFFERENT payment (re-saving this
             // payment's own number is fine), so the update doesn't fail on uq_receipt_number.
@@ -527,6 +548,9 @@ public partial class HomeController : AppController
             if (expense == null)
                 return Json(new { success = false, message = "Expense not found." });
 
+            if (!WithinEditWindow(expense.ExpenseDate))
+                return Json(new { success = false, message = EditWindowMessage });
+
             _context.Expenses.Remove(expense);
             await _context.SaveChangesAsync();
 
@@ -550,6 +574,9 @@ public partial class HomeController : AppController
             var expense = await _context.Expenses.FindAsync(request.Id);
             if (expense == null)
                 return Json(new { success = false, message = "Expense not found." });
+
+            if (!WithinEditWindow(expense.ExpenseDate))
+                return Json(new { success = false, message = EditWindowMessage });
 
             if (request.Amount <= 0)
                 return Json(new { success = false, message = "Expense amount must be greater than zero." });

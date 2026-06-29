@@ -130,6 +130,12 @@ app.Use(async (context, next) =>
 });
 
 if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+
+// Serve runtime-uploaded files (avatars, expense receipts) from wwwroot.
+// MapStaticAssets() below only serves assets baked into the build manifest at
+// publish time, so files written to wwwroot/uploads at runtime 404 without this.
+app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseSession();

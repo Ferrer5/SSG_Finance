@@ -681,6 +681,68 @@ Best regards,<br>SSG Financial Management System";
         return Json(new { taken = true, usedBy = name });
     }
 
+    // ----------------------------------------------------------------
+    // UPDATE OWN EMAIL — available to any logged-in user from their profile page.
+    // A user may only change the email on their OWN account (the session's
+    // AccountId); the value is validated and must be unique across all accounts.
+    // ----------------------------------------------------------------
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateMyEmail([FromBody] UpdateMyEmailRequest request)
+    {
+        var role = GetSessionRole();
+        if (string.IsNullOrEmpty(role))
+            return new ObjectResult(new { success = false, message = "You are not signed in." })
+                { StatusCode = StatusCodes.Status401Unauthorized };
+
+        var accountIdStr = HttpContext.Session.GetString("AccountId");
+        if (!int.TryParse(accountIdStr, out var accountId))
+            return Json(new { success = false, message = "Your session has expired. Please sign in again." });
+
+        try
+        {
+            var email = (request.Email ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(email))
+                return Json(new { success = false, message = "Email is required." });
+
+            if (!IsValidEmail(email))
+                return Json(new { success = false, message = "Please enter a valid email address." });
+
+            var account = await _context.Accounts
+                .FirstOrDefaultAsync(a => a.AccountId == accountId);
+            if (account == null)
+                return Json(new { success = false, message = "Account not found." });
+
+            // No-op if unchanged (case-insensitive).
+            if (!string.Equals(account.Email ?? "", email, StringComparison.OrdinalIgnoreCase))
+            {
+                var taken = await _context.Accounts.AnyAsync(a =>
+                    a.AccountId != accountId &&
+                    a.Email != null &&
+                    a.Email.ToLower() == email.ToLower());
+                if (taken)
+                    return Json(new { success = false, message = "That email address is already in use by another account." });
+
+                account.Email = email;
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                // Normalize stored casing/whitespace to what the user typed.
+                account.Email = email;
+                await _context.SaveChangesAsync();
+            }
+
+            HttpContext.Session.SetString("Email", account.Email ?? "");
+
+            return Json(new { success = true, message = "Email updated successfully.", email = account.Email });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"Update failed: {ex.Message}" });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> CheckSchoolId(string schoolId)
     {
@@ -905,6 +967,7 @@ Best regards,<br>SSG Financial Management System";
             "Admin" => RedirectToAction("AdminDashboard", "Home"),
             "Treasurer" => RedirectToAction("TreasurerDashboard", "Home"),
             "Professor" => RedirectToAction("ProfessorDashboard", "Home"),
+            "Advisor" => RedirectToAction("AdvisorDashboard", "Home"),
             _ => RedirectToAction("Dashboard", "Home")
         };
     }
@@ -963,8 +1026,8 @@ Best regards,<br>SSG Financial Management System";
     private async Task<List<RequestedAccountViewModel>> GetPendingAccountsAsync()
     {
         return await _context.Accounts
-            .Where(a => a.RequestStatus == RequestStatus.Pending 
-         && (a.Role == UserRole.Student || a.Role == UserRole.Professor))
+            .Where(a => a.RequestStatus == RequestStatus.Pending
+         && (a.Role == UserRole.Student || a.Role == UserRole.Professor || a.Role == UserRole.Advisor))
             .Include(a => a.User)
                 .ThenInclude(u => u!.AcademicProfile)
                     .ThenInclude(ap => ap!.Course)
@@ -1111,7 +1174,7 @@ Best regards,<br>SSG Financial Management System";
     {
         var professors = await _context.Accounts
             .Include(a => a.User)
-            .Where(a => (a.Role == UserRole.Professor || a.Role == UserRole.Admin) 
+            .Where(a => (a.Role == UserRole.Professor || a.Role == UserRole.Admin || a.Role == UserRole.Advisor)
                  && a.RequestStatus == RequestStatus.Approved)
             .Select(a => new ProfessorViewModel
             {

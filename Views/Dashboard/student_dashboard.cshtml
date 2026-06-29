@@ -710,8 +710,19 @@
           <span style="font-family:'DM Mono',monospace;font-size:12px">@(studentId.Length > 0 ? studentId : "—")</span>
         </div>
         <div class="profile-field">
+          @Html.AntiForgeryToken()
           <label>Email</label>
-          <span>@(email.Length > 0 ? email : "—")</span>
+          <div id="emailView" style="display:flex;align-items:center;gap:8px">
+            <span id="emailDisplay" style="flex:1">@(email.Length > 0 ? email : "—")</span>
+            <button type="button" onclick="startEmailEdit()" title="Edit email" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0">Edit</button>
+          </div>
+          <div id="emailEdit" style="display:none;flex-direction:column;gap:7px;margin-top:2px">
+            <input type="email" id="emailInput" placeholder="you@example.com" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none" />
+            <div style="display:flex;gap:7px">
+              <button type="button" id="emailSaveBtn" onclick="saveEmail()" style="background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.35);color:#5fdd8e;border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Save</button>
+              <button type="button" onclick="cancelEmailEdit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+            </div>
+          </div>
         </div>
         <div class="profile-field">
           <label>Course</label>
@@ -725,7 +736,7 @@
     </div>
     <div class="notice">
       <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#fbbf24" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <p class="notice-text">To update your personal information, please contact your SSG office or registrar.</p>
+      <p class="notice-text">To update your other personal information, please contact your SSG office or registrar.</p>
     </div>
   </div>
 
@@ -1141,6 +1152,46 @@
     });
 
     /* ── TOAST ── */
+    // ── Edit own email (self-service from the profile page) ──────────────
+    function startEmailEdit(){
+      const cur = document.getElementById('emailDisplay').textContent.trim();
+      const inp = document.getElementById('emailInput');
+      inp.value = (cur === '—') ? '' : cur;
+      document.getElementById('emailView').style.display = 'none';
+      document.getElementById('emailEdit').style.display = 'flex';
+      inp.focus();
+    }
+    function cancelEmailEdit(){
+      document.getElementById('emailEdit').style.display = 'none';
+      document.getElementById('emailView').style.display = 'flex';
+    }
+    async function saveEmail(){
+      const email = document.getElementById('emailInput').value.trim();
+      if(!email){ showToast('Email is required.', 'fail'); return; }
+      const btn = document.getElementById('emailSaveBtn');
+      const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+      btn.disabled = true;
+      try{
+        const res = await fetch('/Home/UpdateMyEmail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if(data.success){
+          document.getElementById('emailDisplay').textContent = data.email || email;
+          cancelEmailEdit();
+          showToast(data.message || 'Email updated successfully.', 'ok');
+        } else {
+          showToast(data.message || 'Failed to update email.', 'fail');
+        }
+      } catch(e){
+        showToast('Failed to update email. Please try again.', 'fail');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     function showToast(msg, type) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.className = 'show ' + type;

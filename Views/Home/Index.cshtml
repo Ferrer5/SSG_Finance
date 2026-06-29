@@ -321,18 +321,15 @@ body.login-open #heroOverlay {
 /* BOTTOM BAR */
 .bottom-bar {
   position:fixed; bottom:0; left:0; right:0; z-index:15;
-  display:flex; justify-content:space-between; align-items:center;
-  padding:18px 72px;
+  display:flex; justify-content:center; align-items:center;
+  padding:20px;
   border-top:1px solid rgba(255,255,255,0.08);
-  background:rgba(0,0,0,0.28);
-  backdrop-filter:blur(6px);
   transition:opacity 0.5s ease;
-  animation: fadeUp 0.7s 0.9s ease both;
 }
 
 body.login-open .bottom-bar { opacity:0; pointer-events:none; }
 
-.bottom-bar p { font-size:12px; color:rgba(255,255,255,0.38); letter-spacing:0.04em; }
+.bottom-bar p { font-size:12px; color:rgba(255,255,255,0.45); letter-spacing:0.04em; }
 
 .bottom-badge {
   display:flex; align-items:center; gap:6px;
@@ -835,11 +832,7 @@ input[type="password"]::-ms-clear{
 
 <!-- BOTTOM BAR -->
 <div class="bottom-bar">
-  <p>© 2025 SSG Finance System · Cebu Technological University</p>
-  <div class="bottom-badge">
-    <span></span>
-    System Online
-  </div>
+  <p>© @DateTime.Now.Year BSIT Students<button type="button" class="dev-credit-btn" onclick="openDevModal()" aria-label="About the developers" title="About the developers"><ion-icon name="help-circle-outline"></ion-icon></button> · Supreme Student Government — CTU Ginatilan</p>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -850,12 +843,12 @@ input[type="password"]::-ms-clear{
   <!-- LEFT PANEL -->
   <div class="lp-left">
     <div class="lp-top">
-      <div class="lp-logo-circle">
-        <img src="/images/logo.png" alt="Ginatilan Logo" />
-      </div>
-      <div class="lp-school-info">
-        <span class="lp-school-name">CTU - Ginatilan</span>
-        <span class="lp-school-sub">Supreme Student Government</span>
+      <div class="logo">
+        <img src="/images/logo.png" alt="SSG Logo">
+        <div class="logo-text">
+          <span class="brand">SSG Finance</span>
+          <span class="sub">Management System</span>
+        </div>
       </div>
     </div>
 
@@ -900,7 +893,7 @@ input[type="password"]::-ms-clear{
         <a class="forgot-link" onclick="goToForgotPassword()"><strong>Forgot password</strong>?</a>
         <button class="btn-signin" onclick="handleSignIn()">Sign in</button>
 
-        <p class="signup-text">Don't have an account? <a href="#" onclick="goToSignUp()" style="color: #000000; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign up</a></p>
+        <p class="signup-text">Don't have an account? <a href="#" onclick="goToSignUp()" style="color: #27a744; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign up</a></p>
       </div>
 
        <!-- ── SCREEN: Sign Up ── -->
@@ -914,11 +907,11 @@ input[type="password"]::-ms-clear{
           <div class="section-title">Login Credentials</div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" for="studentId">CTU ID</label>
+              <label class="form-label" for="studentId">CTU ID<span class="req">*</span></label>
               <input type="text" id="studentId" name="studentId" class="form-input" placeholder="Enter your CTU ID" />
             </div>
             <div class="form-group">
-              <label class="form-label" for="password">Password</label>
+              <label class="form-label" for="password">Password<span class="req">*</span></label>
               <div class="password-wrap">
                 <input type="password" id="password" name="password" class="form-input password-input" placeholder="Create a password" oninput="updatePasswordChecklist(this.value)" onfocus="document.getElementById('password-checklist').style.display='block'" />
                 <button type="button" class="password-toggle" aria-label="Show password" data-toggle-target="#password" onclick="togglePasswordVisibility(this)">
@@ -935,7 +928,7 @@ input[type="password"]::-ms-clear{
               </ul>
             </div>
             <div class="form-group">
-              <label class="form-label" for="confirmPassword">Confirm Password</label>
+              <label class="form-label" for="confirmPassword">Confirm Password<span class="req">*</span></label>
               <div class="password-wrap">
                 <input type="password" id="confirmPassword" name="confirmPassword" class="form-input password-input" placeholder="Re-enter your password" />
                 <button type="button" class="password-toggle" aria-label="Show confirm password" data-toggle-target="#confirmPassword" onclick="togglePasswordVisibility(this)">
@@ -993,14 +986,14 @@ input[type="password"]::-ms-clear{
           <div class="section-title">School Information</div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="course">Course</label>
+                <label class="form-label" for="course">Course<span class="req">*</span></label>
                 <select id="course" name="course" class="form-input" style="appearance:none; background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M7%2010l5%205%205-5z%22/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position:right 10px center; background-size:20px; padding-right:40px;">
                   <option value="">Select a course</option>
                 </select>
               </div>
               
               <div class="form-group">
-                <label class="form-label" for="yearLevel">Year Level</label>
+                <label class="form-label" for="yearLevel">Year Level<span class="req">*</span></label>
                 <select id="yearLevel" name="yearLevel" class="form-input" style="appearance:none; background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23000%22%20d%3D%22M7%2010l5%205%205-5z%22/%3E%3C/svg%3E'); background-repeat:no-repeat; background-position:right 10px center; background-size:20px; padding-right:40px;">
                   <option value="">Select year</option>
                   <option value="1">1</option>
@@ -1011,7 +1004,7 @@ input[type="password"]::-ms-clear{
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="section">Section</label>
+                <label class="form-label" for="section">Section<span class="req">*</span></label>
                 <input type="text" id="section" name="section" class="form-input" placeholder="e.g. A" />
               </div>
             </div>
@@ -1020,7 +1013,7 @@ input[type="password"]::-ms-clear{
 
         <div id="signup-status" style="display:none;font-size:13px;margin-bottom:14px;padding:10px 14px;border-radius:8px;"></div>
         <button class="submit-btn" onclick="handleSignUp()">Submit</button>
-        <p class="back-to-login">Already have an account? <a onclick="goToSignIn()" style="color: #000000; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign in</a></p>
+        <p class="back-to-login">Already have an account? <a onclick="goToSignIn()" style="color: #27a744; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign in</a></p>
       </div>
 
       <!-- ── SCREEN: Email OTP Verification ── -->
@@ -1056,7 +1049,7 @@ input[type="password"]::-ms-clear{
           </div>
           <div style="position: relative; max-width:450px;">
             <button class="submit-btn" style="width: 100%;" onclick="handleForgotPassword()">Send Verification Code</button>
-            <p class="back-to-login" style="position: absolute; bottom: -25px; left: 0; margin: 0;">Remember your password? <a onclick="goToSignIn()" style="color: #000000; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign in</a></p>
+            <p class="back-to-login" style="position: absolute; bottom: -25px; left: 0; margin: 0;">Remember your password? <a onclick="goToSignIn()" style="color: #27a744; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign in</a></p>
           </div>
         </div>
       </div>
@@ -1879,5 +1872,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+@await Html.PartialAsync("_DeveloperModal")
 </body>
 </html>

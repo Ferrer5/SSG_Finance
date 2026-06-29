@@ -18,7 +18,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetReports()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -60,7 +60,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetReportDetail(int id)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Advisor");
         if (guard != null) return guard;
 
         try

@@ -14,7 +14,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetStudentsForPayment(string? q = null, string? semester = null, int? fullAmountId = null)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -125,7 +125,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetStudentFeeStatus(int userId, int fullAmountId)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -186,7 +186,7 @@ public partial class HomeController : AppController
     [HttpGet]
     public async Task<IActionResult> GetAvailableSemesters()
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try
@@ -222,7 +222,7 @@ public partial class HomeController : AppController
     [HttpGet]
 public async Task<IActionResult> GetCollectableOrgFee(string? schoolYear = null)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try

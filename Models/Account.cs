@@ -60,7 +60,8 @@ namespace MyMvcApp.Models
         Student,
         Treasurer,
         Admin,
-        Professor
+        Professor,
+        Advisor
     }
 
     public enum RequestStatus

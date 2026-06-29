@@ -352,7 +352,7 @@ Best regards,<br>SSG Financial Management System";
     [HttpGet]
     public async Task<IActionResult> SearchAllStudentsWithPaymentStatus(string? q = null)
     {
-        var guard = RequireAnyRole("Treasurer", "Admin", "Professor");
+        var guard = RequireAnyRole("Treasurer", "Admin", "Professor", "Advisor");
         if (guard != null) return guard;
 
         try

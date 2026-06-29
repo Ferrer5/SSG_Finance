@@ -40,7 +40,7 @@ namespace MyMvcApp.Data
                 entity.Property(e => e.Role).IsRequired().HasConversion<string>().HasColumnName("roles");
                 entity.Property(e => e.RequestStatus).IsRequired().HasConversion<string>().HasDefaultValue(RequestStatus.Pending).HasColumnName("request_status");
                 entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true).HasColumnName("is_active");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("created_at");
                 entity.Property(e => e.PasswordResetToken).HasMaxLength(255).HasColumnName("password_reset_token");
                 entity.Property(e => e.PasswordResetTokenExpires).HasColumnName("password_reset_token_expires");
 
@@ -168,7 +168,7 @@ namespace MyMvcApp.Data
                         v => (PaymentStatus)Enum.Parse(typeof(PaymentStatus), v)
                     );
                 entity.Property(e => e.ReceivedBy).IsRequired().HasColumnName("received_by");
-                entity.Property(e => e.PaymentDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("payment_date");
+                entity.Property(e => e.PaymentDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("payment_date");
                 entity.Property(e => e.YearLevelAtPayment).HasColumnName("year_level_at_payment");
                 entity.Property(e => e.SectionAtPayment).HasMaxLength(50).HasColumnName("section_at_payment");
 
@@ -197,7 +197,7 @@ namespace MyMvcApp.Data
                 entity.Property(e => e.Description).HasColumnType("text").HasColumnName("description");
                 entity.Property(e => e.Amount).IsRequired().HasPrecision(10, 2).HasColumnName("amount");
                 entity.Property(e => e.ReceivedBy).IsRequired().HasColumnName("received_by");
-                entity.Property(e => e.ReceivedDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("received_date");
+                entity.Property(e => e.ReceivedDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("received_date");
                 entity.Property(e => e.SchoolYearId).HasColumnName("school_year_id");
 
                 entity.HasOne(e => e.Receiver)
@@ -219,7 +219,7 @@ namespace MyMvcApp.Data
                 entity.Property(e => e.Description).HasColumnType("text").HasColumnName("description");
                 entity.Property(e => e.Amount).IsRequired().HasPrecision(10, 2).HasColumnName("amount");
                 entity.Property(e => e.RecordedBy).IsRequired().HasColumnName("recorded_by");
-                entity.Property(e => e.ExpenseDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("expense_date");
+                entity.Property(e => e.ExpenseDate).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("expense_date");
                 entity.Property(e => e.SchoolYearId).HasColumnName("school_year_id");
 
                 entity.HasOne(e => e.Recorder)
@@ -263,7 +263,7 @@ namespace MyMvcApp.Data
                 entity.Property(e => e.SignatureId).HasColumnName("signature_id");
                 entity.Property(e => e.AccountId).IsRequired().HasColumnName("account_id");
                 entity.Property(e => e.SignatureData).IsRequired().HasColumnType("mediumtext").HasColumnName("signature_data");
-                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("created_at");
                 entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true).HasColumnName("is_active");
 
                 entity.HasOne(e => e.Account)
@@ -290,7 +290,7 @@ namespace MyMvcApp.Data
                 entity.Property(e => e.RunningBalance).IsRequired().HasPrecision(10, 2).HasColumnName("running_balance");
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(10).HasDefaultValue("Draft").HasColumnName("status");
                 entity.Property(e => e.CreatedBy).IsRequired().HasColumnName("created_by");
-                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnName("created_at");
+                entity.Property(e => e.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP(6)").HasColumnName("created_at");
 
                 entity.HasOne(e => e.SchoolYear)
                     .WithMany()

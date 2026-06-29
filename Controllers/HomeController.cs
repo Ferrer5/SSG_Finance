@@ -98,9 +98,30 @@ namespace MyMvcApp.Controllers;
         return View();
     }
 
-    public IActionResult Contacts()
+    public async Task<IActionResult> Contacts()
     {
-        return View();
+        var accounts = await _context.Accounts
+            .Include(a => a.User)
+            .Where(a => a.Role == UserRole.Treasurer
+                     && a.RequestStatus == RequestStatus.Approved
+                     && a.IsActive
+                     && a.Email != null && a.Email != "")
+            .ToListAsync();
+
+        var treasurers = accounts
+            .Select(a => new TreasurerContact
+            {
+                Name = a.User != null
+                    ? $"{a.User.FirstName} {a.User.LastName}".Trim()
+                    : a.SchoolId,
+                Role  = "Treasurer",
+                Email = a.Email!
+            })
+            .Where(t => t.Name.Length > 0)
+            .OrderBy(t => t.Name)
+            .ToList();
+
+        return View(new ContactViewModel { Treasurers = treasurers });
     }
 
     public IActionResult Login()
@@ -209,6 +230,7 @@ namespace MyMvcApp.Controllers;
         if (role == "Admin")     return RedirectToAction("AdminDashboard",     "Home");
         if (role == "Treasurer") return RedirectToAction("TreasurerDashboard", "Home");
         if (role == "Professor") return RedirectToAction("ProfessorDashboard", "Home");
+        if (role == "Advisor")   return RedirectToAction("AdvisorDashboard",   "Home");
 
         var userIdStr = HttpContext.Session.GetString("UserId");
         if (!int.TryParse(userIdStr, out var userId))
@@ -451,6 +473,18 @@ namespace MyMvcApp.Controllers;
         return View("~/Views/Dashboard/professor_dashboard.cshtml");
     }
 
+    public IActionResult AdvisorDashboard()
+    {
+        var role = HttpContext.Session.GetString("UserRole");
+        if (string.IsNullOrEmpty(role))
+            return RedirectToAction("Login", "Home");
+
+        if (role != "Advisor")
+            return RedirectToDashboard(role);
+
+        return View("~/Views/Dashboard/advisor_dashboard.cshtml");
+    }
+
     // ----------------------------------------------------------------
     // LOGIN
     // ----------------------------------------------------------------
@@ -575,6 +609,7 @@ namespace MyMvcApp.Controllers;
                 UserRole.Admin => Url.Action("AdminDashboard", "Home")!,
                 UserRole.Treasurer => Url.Action("TreasurerDashboard", "Home")!,
                 UserRole.Professor => Url.Action("ProfessorDashboard", "Home")!,
+                UserRole.Advisor => Url.Action("AdvisorDashboard", "Home")!,
                 _ => Url.Action("Dashboard", "Home")!
             };
 

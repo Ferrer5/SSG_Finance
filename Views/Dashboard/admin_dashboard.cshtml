@@ -20,6 +20,7 @@
     <script src="/js/csrf.js"></script>
     <title>SSG Finance - Admin Panel</title>
     <link rel="icon" type="image/png" href="~/images/favicon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -328,6 +329,19 @@
           .receipt-cut-line,.receipt-cut-line *{visibility:visible!important}
           @@page{margin:12mm;size:auto}
         }
+
+        /* Reports page — chart + report list (ported from treasurer dashboard) */
+        .chart-wrap{padding:16px;height:210px;position:relative}
+        .rpt-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .15s}
+        .rpt-row:last-child{border-bottom:none}
+        .rpt-row:hover{background:rgba(255,255,255,.03)}
+        .rpt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+        .rpt-badge.event{background:rgba(99,102,241,.15);color:#a5b4fc}
+        .rpt-badge.semester{background:rgba(245,158,11,.15);color:#fcd34d}
+        .rpt-badge.annual{background:rgba(39,167,68,.15);color:#5fdd8e}
+        .rpt-title{font-size:13px;font-weight:600;color:#fff;flex:1}
+        .rpt-meta{font-size:11px;color:var(--text-d)}
+        .rpt-bal{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;color:#5fdd8e}
     </style>
 </head>
 <body>
@@ -350,6 +364,10 @@
   <a class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard',this)">
     <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
     Dashboard
+  </a>
+  <a class="nav-item" id="nav-reports" onclick="showPage('reports',this)">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.8"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    Reports
   </a>
 
   <div class="sb-label">Users</div>
@@ -495,6 +513,99 @@
   </div>
 
 
+  <!-- REPORTS PAGE -->
+  <div class="page" id="page-reports">
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Reports</div>
+        <div class="page-sub">Financial overview, monthly trends, and all reports</div>
+      </div>
+    </div>
+
+    <!-- FINANCIAL SUMMARY -->
+    <div class="content-card" style="margin-bottom:14px">
+      <div style="padding:20px 24px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d)">Remaining Balance</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.04em;line-height:1" id="s-balance">&#8369;0.00</div>
+            <div style="font-size:10.5px;color:var(--text-d);line-height:1.3;min-height:14px">cash on hand</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d)">Total Collected</div>
+            <div style="font-size:26px;font-weight:800;color:#5fdd8e;letter-spacing:-.04em;line-height:1" id="s-collected">&#8369;0.00</div>
+            <div style="font-size:10.5px;color:var(--text-d);line-height:1.3;min-height:14px">total collected this School Year</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d)">Expenses</div>
+            <div style="font-size:26px;font-weight:800;color:#f87171;letter-spacing:-.04em;line-height:1" id="s-expenses">&#8369;0.00</div>
+            <div style="font-size:10.5px;color:var(--text-d);line-height:1.3;min-height:14px">total expenses this School Year</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-d)">Collectable Org Fee</div>
+            <div style="font-size:26px;font-weight:800;color:#fbbf24;letter-spacing:-.04em;line-height:1" id="s-collectable">&#8369;0.00</div>
+            <div style="font-size:10.5px;color:var(--text-d);line-height:1.3;min-height:14px" id="s-collectable-count">&nbsp;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Overview chart -->
+    <div class="content-card" style="margin-bottom:14px">
+      <div class="cc-hdr">
+        <div class="cc-title">Monthly Overview</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="filter-select" id="chart-sy" onchange="onChartSYChange()">
+            <option value="">All School Years</option>
+          </select>
+          <select class="filter-select" id="chart-sem" onchange="updateCharts()">
+            <option value="">All Semesters</option>
+            <option value="1">1st Semester</option>
+            <option value="2">2nd Semester</option>
+          </select>
+          <select class="filter-select" id="chart-mode" onchange="updateCharts()">
+            <option value="all">All Transactions</option>
+            <option value="both">Income vs Expenses</option>
+            <option value="orgfee">Organizational Fee</option>
+            <option value="funds">Other Funds</option>
+            <option value="expense">Expenses</option>
+          </select>
+          <button class="btn-outline" onclick="resetChartFilters()" title="Reset filters to default" style="padding:7px 14px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/></svg>
+            Default
+          </button>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+
+    <!-- Report list -->
+    <div class="content-card" id="rpt-list-card">
+      <div class="cc-hdr">
+        <div class="cc-title">All Reports</div>
+      </div>
+      <div id="rpt-list-body"><div style="padding:24px;text-align:center;color:var(--text-d);font-size:13px">No reports yet.</div></div>
+    </div>
+
+    <!-- Report detail (printable) -->
+    <div class="content-card" id="rpt-detail-card" style="display:none">
+      <div class="cc-hdr">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn-outline" onclick="closeReportDetail()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Back
+          </button>
+          <div class="cc-title" id="rpt-detail-title">Report</div>
+        </div>
+        <button class="btn-outline" onclick="printCurrentReport()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Print
+        </button>
+      </div>
+      <div id="rpt-detail-body" style="padding:22px 20px"></div>
+    </div>
+  </div>
+
   <!-- STUDENTS PAGE -->
   <div class="page" id="page-students">
     <div class="page-hdr">
@@ -586,6 +697,9 @@
     @if (p.Role == "Admin") {
         <span style="font-size:10px;font-weight:600;background:rgba(39,167,68,.15);color:#5fdd8e;border:1px solid rgba(39,167,68,.25);border-radius:5px;padding:1px 7px;margin-left:8px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;">Admin</span>
     }
+    else if (p.Role == "Advisor") {
+        <span style="font-size:10px;font-weight:600;background:rgba(96,165,250,.15);color:#93c5fd;border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:1px 7px;margin-left:8px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;">Advisor</span>
+    }
 </td>
                       <td class="td-m">@p.Email</td>
                   <td style="width:40px;text-align:right">
@@ -607,6 +721,10 @@
                     <div class="dropdown-item" onclick="changeProfRole(@p.AccountId, 'Professor'); event.stopPropagation()">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Professor
+                    </div>
+                    <div class="dropdown-item" onclick="changeProfRole(@p.AccountId, 'Advisor'); event.stopPropagation()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+                        Advisor
                     </div>
                     <div class="dropdown-item" onclick="changeProfRole(@p.AccountId, 'Admin'); event.stopPropagation()">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -669,13 +787,23 @@
         </div>
         <div class="profile-field">
           <label>Email</label>
-          <span>@(email.Length > 0 ? email : "—")</span>
+          <div id="emailView" style="display:flex;align-items:center;gap:8px">
+            <span id="emailDisplay" style="flex:1">@(email.Length > 0 ? email : "—")</span>
+            <button type="button" onclick="startEmailEdit()" title="Edit email" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0">Edit</button>
+          </div>
+          <div id="emailEdit" style="display:none;flex-direction:column;gap:7px;margin-top:2px">
+            <input type="email" id="emailInput" placeholder="you@example.com" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none" />
+            <div style="display:flex;gap:7px">
+              <button type="button" id="emailSaveBtn" onclick="saveEmail()" style="background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.35);color:#5fdd8e;border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Save</button>
+              <button type="button" onclick="cancelEmailEdit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="notice" style="background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.18)">
       <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#93c5fd" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke="#93c5fd" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <p class="notice-text">To update your personal information, please contact the system owner.</p>
+      <p class="notice-text">To update your other personal information, please contact the system owner.</p>
     </div>
   </div>
 
@@ -1044,6 +1172,14 @@
         if (name === 'students')    refreshStudents();
         if (name === 'professors')  refreshProfessors();
         if (name === 'settings')    await refreshSchoolYears();
+        if (name === 'reports') {
+            await Promise.all([loadOrgFeePayments(), loadOtherFunds(), loadExpenses()]);
+            await loadDashboardData();
+            await populateChartSchoolYears();
+            await refreshDashboardStats();
+            await loadReports();
+            setTimeout(renderCharts, 100);
+        }
     }
     async function updateStatus(accountId, status) {
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
@@ -1111,6 +1247,46 @@
         row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';
     });
     }
+    // ── Edit own email (self-service from the profile page) ──────────────
+    function startEmailEdit(){
+      const cur = document.getElementById('emailDisplay').textContent.trim();
+      const inp = document.getElementById('emailInput');
+      inp.value = (cur === '—') ? '' : cur;
+      document.getElementById('emailView').style.display = 'none';
+      document.getElementById('emailEdit').style.display = 'flex';
+      inp.focus();
+    }
+    function cancelEmailEdit(){
+      document.getElementById('emailEdit').style.display = 'none';
+      document.getElementById('emailView').style.display = 'flex';
+    }
+    async function saveEmail(){
+      const email = document.getElementById('emailInput').value.trim();
+      if(!email){ showToast('Email is required.', 'fail'); return; }
+      const btn = document.getElementById('emailSaveBtn');
+      const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+      btn.disabled = true;
+      try{
+        const res = await fetch('/Home/UpdateMyEmail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if(data.success){
+          document.getElementById('emailDisplay').textContent = data.email || email;
+          cancelEmailEdit();
+          showToast(data.message || 'Email updated successfully.', 'ok');
+        } else {
+          showToast(data.message || 'Failed to update email.', 'fail');
+        }
+      } catch(e){
+        showToast('Failed to update email. Please try again.', 'fail');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     function showToast(msg,type){
     var t=document.getElementById('toast');
     t.textContent=msg;t.className='show '+type;
@@ -2111,7 +2287,7 @@
                     <td class="td-mono td-m">${p.schoolId}</td>
                     <td>
                         <strong>${p.fullName}</strong>
-                        ${p.role === 'Admin' ? '<span style="font-size:10px;font-weight:600;background:rgba(39,167,68,.15);color:#5fdd8e;border:1px solid rgba(39,167,68,.25);border-radius:5px;padding:1px 7px;margin-left:8px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;">Admin</span>' : ''}
+                        ${p.role === 'Admin' ? '<span style="font-size:10px;font-weight:600;background:rgba(39,167,68,.15);color:#5fdd8e;border:1px solid rgba(39,167,68,.25);border-radius:5px;padding:1px 7px;margin-left:8px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;">Admin</span>' : (p.role === 'Advisor' ? '<span style="font-size:10px;font-weight:600;background:rgba(96,165,250,.15);color:#93c5fd;border:1px solid rgba(96,165,250,.25);border-radius:5px;padding:1px 7px;margin-left:8px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;">Advisor</span>' : '')}
                     </td>
                     <td class="td-m">${p.email}</td>
                     <td style="width:40px;text-align:right">
@@ -2132,6 +2308,10 @@
                                         <div class="dropdown-item" onclick="changeProfRole(${p.accountId}, 'Professor'); event.stopPropagation()">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             Professor
+                                        </div>
+                                        <div class="dropdown-item" onclick="changeProfRole(${p.accountId}, 'Advisor'); event.stopPropagation()">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+                                            Advisor
                                         </div>
                                         <div class="dropdown-item" onclick="changeProfRole(${p.accountId}, 'Admin'); event.stopPropagation()">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2861,6 +3041,461 @@
         showToast('PDF downloaded successfully.', 'ok');
       } catch (err) { console.error(err); showToast('Failed to generate PDF.', 'fail'); }
     }
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN REPORTS PAGE — 4 KPI cards + Monthly Overview chart + All Reports
+// Ported (read-only) from the treasurer dashboard. Reuses admin's p(),
+// escapeHtml(), showToast(). The KPI cards follow the Monthly Overview's
+// school-year dropdown (chart-sy); Remaining Balance is cumulative.
+// ═══════════════════════════════════════════════════════════════════
+let DB = { orgFees: [], funds: [], expenses: [] };
+let CURRENT_SCHOOL_YEAR = null;
+let CURRENT_SEMESTER = null;
+let barChart = null;
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+async function loadDashboardData() {
+  try {
+    const res = await fetch('/Home/GetTreasurerDashboardStats');
+    const data = await res.json();
+    if (data.success) {
+      CURRENT_SCHOOL_YEAR = data.schoolYear;
+      CURRENT_SEMESTER = data.semester;
+    }
+  } catch (err) {
+    console.error('Failed to load dashboard data:', err);
+  }
+}
+
+async function loadOrgFeePayments() {
+  try {
+    const res = await fetch('/Home/GetOrgFeePayments');
+    const data = await res.json();
+    if (data.success) {
+      DB.orgFees = data.payments.map(p => ({
+        id: p.paymentId,
+        userId: p.userId,
+        name: p.studentName,
+        schoolId: p.schoolId,
+        course: p.courseCode,
+        yr: p.yearSection,
+        sem: p.semester,
+        schoolYear: (p.schoolYear || '').replace(/\s*[–-]\s*/g, '–'),
+        amt: p.amount,
+        amtRequired: p.amountRequired,
+        status: p.paymentStatus,
+        receipt: p.receiptNumber || '',
+        date: p.paymentDate.split('T')[0],
+        fullDate: p.paymentDate
+      }));
+    }
+  } catch (err) { console.error('Failed to load org fee payments:', err); }
+}
+
+async function loadOtherFunds() {
+  try {
+    const res = await fetch('/Home/GetOtherFunds');
+    const data = await res.json();
+    if (data.success) {
+      DB.funds = data.funds.map(f => ({
+        id: f.fundId,
+        source: f.source,
+        desc: f.description,
+        cat: f.category || 'Other',
+        amt: f.amount,
+        date: f.receivedDate.split('T')[0],
+        fullDate: f.receivedDate,
+        schoolYear: (f.schoolYear || '').replace(/\s*[–-]\s*/g, '–')
+      }));
+    }
+  } catch (err) { console.error('Failed to load other funds:', err); }
+}
+
+async function loadExpenses() {
+  try {
+    const res = await fetch('/Home/GetExpenses');
+    const data = await res.json();
+    if (data.success) {
+      DB.expenses = data.expenses.map(e => ({
+        id: e.expenseId,
+        desc: e.description,
+        amt: e.amount,
+        date: e.expenseDate.split('T')[0],
+        fullDate: e.expenseDate,
+        recordedBy: e.recordedBy,
+        schoolYear: (e.schoolYear || '').replace(/\s*[–-]\s*/g, '–'),
+        images: e.images || []
+      }));
+    }
+  } catch (err) { console.error('Failed to load expenses:', err); }
+}
+
+function allTransactions() {
+  let rows = [];
+  DB.orgFees.forEach(x => rows.push({
+    type: 'income', src: 'OrgFee', amt: x.amt, date: x.date,
+    fullDate: x.fullDate || x.date, schoolYear: x.schoolYear || null
+  }));
+  DB.funds.forEach(x => rows.push({
+    type: 'income', src: 'OtherFund', amt: x.amt, date: x.date,
+    fullDate: x.fullDate || x.date, schoolYear: x.schoolYear || null
+  }));
+  DB.expenses.forEach(x => rows.push({
+    type: 'expense', src: 'Expense', amt: x.amt, date: x.date,
+    fullDate: x.fullDate || x.date, schoolYear: x.schoolYear || null
+  }));
+  return rows.sort((a, b) => {
+    const ta = Date.parse(a.fullDate), tb = Date.parse(b.fullDate);
+    const va = isNaN(ta) ? Date.parse(a.date) || 0 : ta;
+    const vb = isNaN(tb) ? Date.parse(b.date) || 0 : tb;
+    return vb - va;
+  });
+}
+
+// The 4 KPI cards follow the Monthly Overview school-year dropdown (chart-sy).
+async function refreshDashboardStats() {
+  const sySel = document.getElementById('chart-sy');
+  const rawSY = sySel ? (sySel.value ?? '') : '';
+  const selectedSY = rawSY.replace(/\s*[–-]\s*/g, '–');
+  // chart-sy defaults to the current school year; '' = "All School Years".
+  const effectiveSY = selectedSY;
+
+  const tx = allTransactions().filter(t => !effectiveSY || (t.schoolYear || '') === effectiveSY);
+  const collected = tx.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+  const expenses  = tx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+
+  const collectedEl = document.getElementById('s-collected');
+  const expensesEl  = document.getElementById('s-expenses');
+  if (collectedEl) collectedEl.textContent = p(collected);
+  if (expensesEl)  expensesEl.textContent  = p(expenses);
+
+  // Remaining Balance = CUMULATIVE cash on hand: selected year + all previous years.
+  const selStart = selectedSY ? parseInt(selectedSY.split('–')[0], 10) : null;
+  const cumTx = allTransactions().filter(t => {
+    if (selStart === null) return true;
+    const tyStart = parseInt((t.schoolYear || '').split('–')[0], 10);
+    if (isNaN(tyStart)) return false;
+    return tyStart <= selStart;
+  });
+  const cumCollected = cumTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+  const cumExpenses  = cumTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+  const balanceEl = document.getElementById('s-balance');
+  if (balanceEl) balanceEl.textContent = p(cumCollected - cumExpenses);
+
+  // Collectable: ask the server for the effective year (defaults to current SY).
+  try {
+    const url = effectiveSY
+      ? '/Home/GetCollectableOrgFee?schoolYear=' + encodeURIComponent(effectiveSY)
+      : '/Home/GetCollectableOrgFee';
+    const res = await fetch(url);
+    const data = await res.json();
+    const cEl = document.getElementById('s-collectable');
+    if (cEl) cEl.textContent = p(data.success ? data.collectable : 0);
+    const cCountEl = document.getElementById('s-collectable-count');
+    if (cCountEl) {
+      const n = data.success ? (data.membersCount || 0) : 0;
+      cCountEl.textContent = n > 0 ? `${n} student${n !== 1 ?'s' : ''} still owe` : ' ';
+    }
+  } catch {}
+}
+
+async function populateChartSchoolYears() {
+  try {
+    const res = await fetch('/Home/GetSchoolYears');
+    const data = await res.json();
+    const sel = document.getElementById('chart-sy');
+    if (!sel || !data.success) return;
+    const current = data.schoolYears.find(sy => sy.yearStatus === 'Current');
+    sel.innerHTML = '<option value="">All School Years</option>' +
+      data.schoolYears.map(sy =>
+        `<option value="${sy.yearStart}–${sy.yearEnd}">${sy.yearStart}–${sy.yearEnd}</option>`
+      ).join('');
+    if (current) sel.value = `${current.yearStart}–${current.yearEnd}`;
+    await rebuildMonthsDropdown(sel.value);
+  } catch {}
+}
+
+// Caches the selected school year's semester date bounds in
+// window.currentSYDateRange, so the semester filter in renderCharts() can apply them.
+async function rebuildMonthsDropdown(selectedSY) {
+  window.currentSYDateRange = null;
+  if (!selectedSY) return;
+  try {
+    const res  = await fetch('/Home/GetSchoolYearDateRange?schoolYear=' + encodeURIComponent(selectedSY));
+    const data = await res.json();
+    if (!data.success) return;
+    window.currentSYDateRange = {
+      firstSemStart:  data.firstSemStart  ? new Date(data.firstSemStart)  : null,
+      firstSemEnd:    data.firstSemEnd    ? new Date(data.firstSemEnd)    : null,
+      secondSemStart: data.secondSemStart ? new Date(data.secondSemStart) : null,
+      secondSemEnd:   data.secondSemEnd   ? new Date(data.secondSemEnd)   : null
+    };
+  } catch {}
+}
+
+async function onChartSYChange() {
+  const selectedSY = document.getElementById('chart-sy').value;
+  await rebuildMonthsDropdown(selectedSY);
+  updateCharts();
+  await refreshDashboardStats();
+}
+
+async function resetChartFilters() {
+  const semSel  = document.getElementById('chart-sem');
+  const modeSel = document.getElementById('chart-mode');
+  if (semSel)  semSel.value  = '';
+  if (modeSel) modeSel.value = 'all';
+  await populateChartSchoolYears();
+  updateCharts();
+  await refreshDashboardStats();
+}
+
+function updateCharts() { renderCharts(); }
+
+function renderCharts() {
+  const selectedSY    = (document.getElementById('chart-sy')?.value || '').replace(/\s*[–-]\s*/g, '–');
+  const selectedSem   = document.getElementById('chart-sem')?.value || '';
+  const selectedMonth = document.getElementById('chart-month')?.value;
+  const mode          = document.getElementById('chart-mode')?.value || 'both';
+
+  let semStart = null, semEnd = null;
+  const syRange = window.currentSYDateRange;
+  if (selectedSem && syRange) {
+    if (selectedSem === '1') { semStart = syRange.firstSemStart;  semEnd = syRange.firstSemEnd; }
+    else if (selectedSem === '2') { semStart = syRange.secondSemStart; semEnd = syRange.secondSemEnd; }
+  }
+  const semBoundary = syRange ? syRange.secondSemStart : null;
+  const inSemester = (date) => {
+    if (!selectedSem || !syRange) return true;
+    if (semBoundary) return selectedSem === '1' ? date < semBoundary : date >= semBoundary;
+    if (!semStart || !semEnd) return true;
+    return date >= semStart && date <= semEnd;
+  };
+
+  const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let labels;
+  if (selectedMonth !== '' && selectedMonth !== null && selectedMonth !== undefined) {
+    labels = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
+  } else {
+    labels = allMonths;
+  }
+
+  let mOrgFee = new Array(labels.length).fill(0);
+  let mFunds  = new Array(labels.length).fill(0);
+  let mInc    = new Array(labels.length).fill(0);
+  let mExp    = new Array(labels.length).fill(0);
+
+  allTransactions()
+    .filter(t => {
+      const date = new Date(t.fullDate || t.date + 'T00:00');
+      if (!inSemester(date)) return false;
+      if (selectedMonth !== '' && selectedMonth !== null && selectedMonth !== undefined) {
+        const syMatch = !selectedSY || (t.schoolYear || '') === selectedSY;
+        return date.getMonth() === parseInt(selectedMonth) && syMatch;
+      } else {
+        if (!selectedSY) return true;
+        return (t.schoolYear || '') === selectedSY;
+      }
+    })
+    .forEach(t => {
+      const date  = new Date(t.fullDate || t.date + 'T00:00');
+      const index = (selectedMonth !== '' && selectedMonth !== null && selectedMonth !== undefined)
+        ? date.getDate() - 1
+        : date.getMonth();
+      if (t.type === 'expense')        mExp[index]    += t.amt;
+      else if (t.src === 'OrgFee')     mOrgFee[index] += t.amt;
+      else if (t.src === 'OtherFund')  mFunds[index]  += t.amt;
+      if (t.type === 'income') mInc[index] += t.amt;
+    });
+
+  let datasets = [];
+  switch (mode) {
+    case 'all':
+      datasets = [
+        { label: 'Org Fee',     data: mOrgFee, backgroundColor: 'rgba(39,167,68,.75)',  borderRadius: 4, borderSkipped: false },
+        { label: 'Other Funds', data: mFunds,  backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 4, borderSkipped: false },
+        { label: 'Expenses',    data: mExp,    backgroundColor: 'rgba(239,68,68,.65)',  borderRadius: 4, borderSkipped: false },
+      ]; break;
+    case 'both':
+      datasets = [
+        { label: 'Income',   data: mInc, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false },
+        { label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false },
+      ]; break;
+    case 'orgfee':
+      datasets = [{ label: 'Organizational Fee', data: mOrgFee, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false }]; break;
+    case 'funds':
+      datasets = [{ label: 'Other Funds', data: mFunds, backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 4, borderSkipped: false }]; break;
+    case 'expense':
+      datasets = [{ label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false }]; break;
+    default:
+      datasets = [
+        { label: 'Income',   data: mInc, backgroundColor: 'rgba(39,167,68,.75)', borderRadius: 4, borderSkipped: false },
+        { label: 'Expenses', data: mExp, backgroundColor: 'rgba(239,68,68,.65)', borderRadius: 4, borderSkipped: false },
+      ];
+  }
+
+  if (barChart) barChart.destroy();
+  const canvas = document.getElementById('barChart');
+  if (!canvas) return;
+  barChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets },
+    plugins: [{
+      id: 'barValueLabels',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset, i) => {
+          chart.getDatasetMeta(i).data.forEach((bar, j) => {
+            const v = dataset.data[j];
+            if (!v) return;
+            ctx.save();
+            ctx.fillStyle = 'rgba(232,245,236,0.85)';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(p(v), bar.x, bar.y - 3);
+            ctx.restore();
+          });
+        });
+      }
+    }],
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 18 } },
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color: 'rgba(232,245,236,.5)', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ' ' + p(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: 'rgba(232,245,236,.4)', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: 'rgba(232,245,236,.4)', font: { size: 10 }, callback: v => '₱' + v.toLocaleString() } }
+      }
+    }
+  });
+}
+
+// ── REPORTS LIST / DETAIL (view-only) ──────────────────────────────
+async function loadReports() {
+  try {
+    const res  = await fetch('/Home/GetReports');
+    const data = await res.json();
+    if (!data.success) return;
+    const body = document.getElementById('rpt-list-body');
+    if (!data.reports.length) {
+      body.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-d);font-size:13px">No reports yet.</div>';
+      return;
+    }
+    const fmt = n => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const badgeClass = t => t === 'Event' ? 'event' : t === 'Semester' ? 'semester' : 'annual';
+    body.innerHTML = data.reports.map(r => `
+      <div class="rpt-row" onclick="viewReport(${r.reportId})">
+        <span class="rpt-badge ${badgeClass(r.reportType)}">${r.reportType}</span>
+        <div class="rpt-title">${escapeHtml(r.title)}</div>
+        <div class="rpt-meta">${r.schoolYear || ''}${r.semester ? ' · ' + r.semester + ' Sem' : ''}${r.dateFrom ? ' · ' + r.dateFrom.substring(0,10) : ''}</div>
+        <div class="rpt-bal">${fmt(r.runningBalance)}</div>
+      </div>`).join('');
+  } catch { /* silent */ }
+}
+
+async function viewReport(id) {
+  try {
+    const res  = await fetch(`/Home/GetReportDetail?id=${id}`);
+    const data = await res.json();
+    if (!data.success) { showToast(data.message, 'fail'); return; }
+    const r = data.report;
+    document.getElementById('rpt-list-card').style.display   = 'none';
+    document.getElementById('rpt-detail-card').style.display = '';
+    document.getElementById('rpt-detail-title').textContent  = r.title;
+    document.getElementById('rpt-detail-body').innerHTML     = buildReportHTML(r);
+  } catch { showToast('Could not load report.', 'fail'); }
+}
+
+function closeReportDetail() {
+  document.getElementById('rpt-detail-card').style.display = 'none';
+  document.getElementById('rpt-list-card').style.display   = '';
+}
+
+function printCurrentReport() {
+  const body = document.getElementById('rpt-detail-body').innerHTML;
+  const win  = window.open('', '_blank');
+  if (!win) { showToast('Pop-up blocked. Allow pop-ups to print.', 'fail'); return; }
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>SSG Financial Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
+    #rpt-footer-banner { position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 0 56px; }
+    #rpt-footer-banner img { max-width: 100%; height: auto; }
+    @@media print {
+      body { margin: 0; }
+      @@page { margin: 10mm 10mm 20mm 10mm; size: A4; }
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  </style>
+</head>
+<body>${body}</body>
+</html>`);
+  win.document.close();
+  win.onload = function() { win.focus(); win.print(); };
+}
+
+function buildReportHTML(r) {
+  const fmt = n => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const revenue  = (r.items||[]).filter(i => i.itemType === 'Fund');
+  const expenses = (r.items||[]).filter(i => i.itemType === 'Expense');
+  const td  = (txt, style='') => `<td style="border:1px solid #000;padding:4px 8px;font-size:10px;color:#000;${style}">${txt}</td>`;
+  const tdr = (txt, style='') => td(txt, `text-align:right;color:#000;${style}`);
+  const revRows = revenue.map(i => `<tr>${td(`&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(i.description||'—')}`)}${tdr(fmt(i.amount))}</tr>`).join('');
+  const expRows = expenses.map(i => `<tr>${td(`&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(i.description||'—')}`)}${tdr(fmt(i.amount))}</tr>`).join('');
+  const labelRow = txt => `<tr><td colspan="2" style="border:none;padding:7px 0 3px;font-size:10px;color:#000">${txt}</td></tr>`;
+  const revSection = revenue.length ? `${labelRow('Revenue:')}${revRows}<tr>${td('<strong>TOTAL</strong>', 'font-weight:bold')}${tdr(`<strong>${fmt(r.totalRevenue)}</strong>`, 'font-weight:bold')}</tr>` : '';
+  const expSection = expenses.length ? `${labelRow('Less: Expenses:')}${expRows}<tr>${td('<strong>TOTAL</strong>', 'font-weight:bold')}${tdr(`<strong>${fmt(r.totalExpenses)}</strong>`, 'font-weight:bold')}</tr>` : '';
+  return `
+<div style="all:initial;display:block;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:40px 56px 48px;max-width:794px;margin:0 auto;box-sizing:border-box">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+    <tr>
+      <td style="width:90px;text-align:center;vertical-align:middle"><img src="/images/ctu_logo.png" style="width:82px;height:82px;object-fit:contain"/></td>
+      <td style="text-align:center;vertical-align:middle;padding:0 10px">
+        <div style="font-size:10px;color:#000">Republic of the Philippines</div>
+        <div style="font-size:14px;font-weight:bold;color:#000">CEBU TECHNOLOGICAL UNIVERSITY</div>
+        <div style="font-size:10px;color:#000">ARGAO CAMPUS</div>
+        <div style="font-size:10px;color:#000">Ed Kintanar Street Lamacan Argao, Cebu Philippines</div>
+        <div style="font-size:9px;color:#000;margin-top:2px">Website: <span style="color:#0000EE">http://www.argao.ctu.edu.ph</span>&nbsp;&nbsp;E-mail: <span style="color:#0000EE">cdargao@ctu.edu.ph</span></div>
+        <div style="font-size:9px;color:#000">Phone No.: (032) 485-8290/485-5109 loc 1700&nbsp;&nbsp;Fax. No.: (032) 4858-290</div>
+      </td>
+      <td style="width:90px;text-align:center;vertical-align:middle"><img src="/images/Bagong_Pilipinas.png" style="width:82px;height:82px;object-fit:contain"/></td>
+    </tr>
+  </table>
+  <div style="text-align:center;padding:4px 0;font-size:12px;font-weight:bold;letter-spacing:.05em;margin-bottom:4px;color:#000">CTU – GINATILAN EXTENSION CAMPUS</div>
+  <div style="text-align:center;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;color:#000">Supreme Student Government</div>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;table-layout:fixed">
+    <col style="width:70%"/><col style="width:30%"/>
+    <tr>${td('<strong>BEGINNING BALANCE</strong>', 'font-weight:bold;background:#d9d9d9')}${tdr(`<strong>${fmt(r.beginningBalance)}</strong>`, 'font-weight:bold;background:#d9d9d9')}</tr>
+    ${revSection}
+    ${expSection}
+    <tr style="background:#fff200">
+      <td style="border:1px solid #000;padding:5px 8px;font-size:10px;font-weight:bold;color:#000"><strong>RUNNING BALANCE</strong></td>
+      <td style="border:1px solid #000;padding:5px 8px;text-align:right;font-size:10px;font-weight:bold;color:#000"><strong>${fmt(r.runningBalance)}</strong></td>
+    </tr>
+  </table>
+  <table style="width:100%;border-collapse:collapse;margin-top:44px">
+    <tr>
+      <td style="width:50%;text-align:center;padding:0 28px 0 0;vertical-align:bottom"><div style="font-size:10px;margin-bottom:32px;color:#000;text-align:left">Prepared by:</div><div style="border-top:1px solid #000;padding-top:3px;font-size:10px;color:#000">SSG Treasurer</div></td>
+      <td style="width:50%;text-align:center;padding:0 0 0 28px;vertical-align:bottom"><div style="font-size:10px;margin-bottom:32px;color:#000;text-align:left">Audited by:</div><div style="border-top:1px solid #000;padding-top:3px;font-size:10px;color:#000">SSG Auditor</div></td>
+    </tr>
+    <tr>
+      <td style="width:50%;text-align:center;padding:28px 28px 0 0;vertical-align:bottom"><div style="font-size:10px;margin-bottom:32px;color:#000;text-align:left">Noted by:</div><div style="border-top:1px solid #000;padding-top:3px;font-size:10px;color:#000">SSG President</div></td>
+      <td style="width:50%;text-align:center;padding:28px 0 0 28px;vertical-align:bottom"><div style="font-size:10px;margin-bottom:32px;color:#000;text-align:left">Approved by:</div><div style="border-top:1px solid #000;padding-top:3px;font-size:10px;color:#000">SSG Adviser</div></td>
+    </tr>
+  </table>
+  <div id="rpt-footer-banner" style="margin-top:36px;text-align:center"><img src="/images/report_footer.png" style="max-width:100%;height:auto"/></div>
+</div>`;
+}
 
 </script>
 
