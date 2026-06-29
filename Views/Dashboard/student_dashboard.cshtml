@@ -529,7 +529,7 @@
     <div class="page-hdr">
       <div>
         <div class="page-title">Current Fees</div>
-        <div class="page-sub">Your active fee obligations</div>
+        <div class="page-sub">Org Fees you still need to pay</div>
       </div>
     </div>
     <div class="content-card">
@@ -563,7 +563,7 @@
                   <td class="td-mono td-m">@(feeIdx++)</td>
                   <td class="td-m"><strong>@SemShort(h.Semester)</strong></td>
                   <td class="td-mono td-m">@h.Term</td>
-                  <td class="td-mono" style="color:@(bal > 0 ? "#f87171" : "#5fdd8e")">₱@bal.ToString("N2")</td>
+                  <td class="td-mono" style="color:@(bal <= 0 ? "#5fdd8e" : (paid > 0 ? "#fbbf24" : "#f87171"))">₱@bal.ToString("N2")</td>
                   <td class="td-mono">₱@paid.ToString("N2")</td>
                   <td><span class="badge @sc">@h.OverallStatus</span></td>
                   <td>
