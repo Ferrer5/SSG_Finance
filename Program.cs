@@ -96,11 +96,6 @@ else
     });
 }
 
-// Enforce HTTPS even on LAN.
-// Use HSTS for all environments (self-signed HTTPS is supported on school LAN).
-app.UseHsts();
-
-
 // Add security headers to hide server information
 app.Use(async (context, next) =>
 {
@@ -128,8 +123,6 @@ app.Use(async (context, next) =>
 
     await next();
 });
-
-if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 
 // Serve runtime-uploaded files (avatars, expense receipts) from wwwroot.
 // MapStaticAssets() below only serves assets baked into the build manifest at

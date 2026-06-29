@@ -89,11 +89,11 @@ success "Code is up to date."
 # --- Pre-Deploy Database Backup ---
 BACKUP_DIR="deploy-backups"
 mkdir -p "$BACKUP_DIR"
-DB_CONTAINER="ssg-finance-db-1"
+DB_CONTAINER=$(docker compose ps --format '{{.Name}}' --status running 2>/dev/null | grep -- '-db-' | head -1) || DB_CONTAINER=""
 DB_NAME=$(grep -E '^MYSQL_DATABASE=' .env | cut -d'=' -f2 | tr -d "'\"")
 DB_USER=$(grep -E '^MYSQL_USER=' .env | cut -d'=' -f2 | tr -d "'\"")
 DB_PASS=$(grep -E '^MYSQL_PASSWORD=' .env | cut -d'=' -f2- | tr -d "'\"")
-if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
+if [ -n "$DB_CONTAINER" ] && docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
     DB_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' "$DB_CONTAINER" 2>/dev/null || echo "unknown")
     if [ "$DB_HEALTH" = "healthy" ]; then
         BACKUP_FILE="${BACKUP_DIR}/ssg_finance_$(date +%Y%m%d_%H%M%S).sql.gz"
@@ -118,7 +118,7 @@ MYSQL_MAX_WAIT=60
 MYSQL_ELAPSED=0
 while [ $MYSQL_ELAPSED -lt $MYSQL_MAX_WAIT ]; do
     # Check if the db container's healthcheck is passing
-    DB_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ssg-finance-db-1 2>/dev/null || echo "unknown")
+    DB_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' "$DB_CONTAINER" 2>/dev/null || echo "unknown")
     if [ "$DB_HEALTH" = "healthy" ]; then
         success "MySQL is healthy."
         break
