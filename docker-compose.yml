@@ -17,6 +17,8 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    networks:
+      - ssg-network
 
   app:
     build: .
@@ -25,7 +27,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-ssg_system};uid=${MYSQL_USER};pwd=${MYSQL_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-ssg_system};uid=${MYSQL_USER};pwd=${MYSQL_PASSWORD};charset=utf8mb4;"
       SmtpSettings__Host: "${SMTP_HOST:-}"
       SmtpSettings__Port: "${SMTP_PORT:-}"
       SmtpSettings__UserName: "${SMTP_USERNAME:-}"
@@ -43,6 +45,12 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    networks:
+      - ssg-network
+
+networks:
+  ssg-network:
+    driver: bridge
 
 volumes:
   mysql_data:

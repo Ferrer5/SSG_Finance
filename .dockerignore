@@ -27,8 +27,6 @@ node_modules/
 docker-compose.yml
 Dockerfile
 deploy.sh
-deploy-native.sh
-ssg.service
 
 Test Cases*.csv
 debug_fees.txt
