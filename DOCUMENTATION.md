@@ -30,13 +30,24 @@ SSG Finance is a web application for managing **Supreme Student Government (SSG)
 
 1. Copy `.env.example` to `.env`, fill in secrets
 2. `bash deploy.sh`
-3. Access at `http://<server-ip>:5183`
-
-### Native Ubuntu
-
-1. Copy `.env.native.example` to `.env`, fill in secrets
-2. `bash deploy-native.sh`
 3. Access at `http://<server-ip>:8085`
+
+### Environment Variables
+
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `APP_PORT` | No | `8085` | Application HTTP port |
+| `MYSQL_HOST` | Yes | `mysql` | MySQL server hostname (use `db` in Docker) |
+| `MYSQL_PORT` | No | `3306` | MySQL server port |
+| `MYSQL_DATABASE` | No | `ssg_system` | Database name |
+| `MYSQL_ROOT_PASSWORD` | Yes | — | MySQL root password (Docker initialization) |
+| `MYSQL_USER` | Yes | — | Application database user |
+| `MYSQL_PASSWORD` | Yes | — | Application database password |
+| `SMTP_HOST` | No | — | SMTP server host (email disabled if empty) |
+| `SMTP_PORT` | No | — | SMTP server port |
+| `SMTP_USERNAME` | No | — | SMTP username / sender email |
+| `SMTP_PASSWORD` | No | — | SMTP password |
+| `SMTP_ENABLE_SSL` | No | `true` | Enable SSL for SMTP |
 
 ---
 
@@ -48,7 +59,7 @@ SSG_Finance/
 ├── MyMvcApp.csproj                   # .NET 10 project (EF Core, BCrypt, Pomelo MySQL)
 ├── appsettings.json                  # Config (connection string, logging)
 ├── Dockerfile / docker-compose.yml   # Container setup
-├── deploy.sh / deploy-native.sh      # Deployment scripts
+├── deploy.sh                         # Deployment script
 │
 ├── Controllers/                      # MVC controllers (partial classes for HomeController)
 │   ├── AppController.cs              # Base: auth guards, login lockout
@@ -233,8 +244,8 @@ SSG_Finance/
 
 | Service | Purpose | Configuration |
 |---------|---------|---------------|
-| **MySQL 8.0** | Primary database | `ConnectionStrings:DefaultConnection` in `appsettings.json` |
-| **SMTP (Gmail)** | Password reset and notification emails | `SmtpSettings` section in config / environment variables |
+| **MySQL 8.0** | Primary database | `ConnectionStrings:DefaultConnection` via environment variables or `appsettings.json` |
+| **SMTP (Gmail)** | Password reset and notification emails | `SmtpSettings__*` environment variables (Docker) or `SmtpSettings` section in `appsettings.json` |
 | **Google Fonts** | Inter, DM Sans, DM Mono, Libre Baskerville fonts | CDN links in views |
 | **Ionicons 5.5.2** | Icon library | CDN link in views |
 | **Chart.js** | Dashboard charts (monthly overview, financial summaries) | CDN link in views |
@@ -261,7 +272,7 @@ SSG_Finance/
 
 ### Deployment Notes
 
-- **Docker deployment** binds to port 5183. **Native deployment** binds to port 8085.
+- **Docker deployment** binds to port 8085 (configurable via `APP_PORT` in `.env`).
 - The native deployment uses HTTP only (no HTTPS). This works on the school LAN because browsers ignore HSTS for raw IP addresses.
 - If adding Nginx as a reverse proxy later, disable `proxy_buffering` for the SSE endpoint (`/Home/Events`).
 - Database backups: `mysqldump ssg_system > ssg_$(date +%F).sql`

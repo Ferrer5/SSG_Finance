@@ -2,12 +2,12 @@ CREATE DATABASE IF NOT EXISTS ssg_system;
 USE ssg_system;
 
 -- 1. accounts
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
   account_id                   INT             NOT NULL AUTO_INCREMENT,
   school_id                    VARCHAR(50)     NOT NULL,
   password_hash                VARCHAR(255)    NOT NULL,
   email                        VARCHAR(150)    NULL,
-  roles                        ENUM('Student','Treasurer','Admin','Professor') NOT NULL,
+  roles                        ENUM('Student','Treasurer','Admin','Professor','Advisor') NOT NULL,
   request_status               ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
   is_active                    BOOLEAN         NOT NULL DEFAULT TRUE,
   created_at                   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +19,7 @@ CREATE TABLE accounts (
 );
 
 -- 2. users
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   user_id     INT          NOT NULL AUTO_INCREMENT,
   account_id  INT          NOT NULL,
   first_name  VARCHAR(100) NULL,
@@ -35,7 +35,7 @@ CREATE TABLE users (
 );
 
 -- 3. courses
-CREATE TABLE courses (
+CREATE TABLE IF NOT EXISTS courses (
   course_id   INT          NOT NULL AUTO_INCREMENT,
   course_code VARCHAR(20)  NOT NULL,
   course_name VARCHAR(100) NULL,
@@ -45,7 +45,7 @@ CREATE TABLE courses (
 );
 
 -- 4. school_years (must exist before academic_profile references it)
-CREATE TABLE school_years (
+CREATE TABLE IF NOT EXISTS school_years (
   school_year_id   INT                     NOT NULL AUTO_INCREMENT,
   year_start       INT                     NOT NULL,
   year_end         INT                     NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE school_years (
 );
 
 -- 5. academic_profile
-CREATE TABLE academic_profile (
+CREATE TABLE IF NOT EXISTS academic_profile (
   academic_profile_id INT                    NOT NULL AUTO_INCREMENT,
   user_id             INT                    NOT NULL,
   course_id           INT                    NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE academic_profile (
 );
 
 -- 6. full_amount
-CREATE TABLE full_amount (
+CREATE TABLE IF NOT EXISTS full_amount (
   full_amount_id  INT                     NOT NULL AUTO_INCREMENT,
   school_year_id  INT                     NOT NULL,
   semester        ENUM('First','Second')  NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE full_amount (
 );
 
 -- 7. org_fee_payments
-CREATE TABLE org_fee_payments (
+CREATE TABLE IF NOT EXISTS org_fee_payments (
   payment_id            INT           NOT NULL AUTO_INCREMENT,
   user_id               INT           NULL,
   full_amount_id        INT           NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE org_fee_payments (
 );
 
 -- 8. other_funds
-CREATE TABLE other_funds (
+CREATE TABLE IF NOT EXISTS other_funds (
   fund_id        INT           NOT NULL AUTO_INCREMENT,
   source         VARCHAR(200)  NULL,
   description    TEXT          NULL,
@@ -142,7 +142,7 @@ CREATE TABLE other_funds (
 );
 
 -- 9. expenses
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
   expense_id     INT           NOT NULL AUTO_INCREMENT,
   description    TEXT          NULL,
   amount         DECIMAL(10,2) NOT NULL,
@@ -160,7 +160,7 @@ CREATE TABLE expenses (
 );
 
 -- 9b. expense_images (receipt hardcopy photos per expense; files on disk, path stored here)
-CREATE TABLE expense_images (
+CREATE TABLE IF NOT EXISTS expense_images (
   image_id    INT          NOT NULL AUTO_INCREMENT,
   expense_id  INT          NOT NULL,
   image_path  VARCHAR(255) NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE expense_images (
 );
 
 -- 10. receipts
-CREATE TABLE receipts (
+CREATE TABLE IF NOT EXISTS receipts (
   receipt_id     INT         NOT NULL AUTO_INCREMENT,
   receipt_number VARCHAR(50) NOT NULL,
   payment_id     INT         NULL,
@@ -190,7 +190,7 @@ CREATE TABLE receipts (
 );
 
 -- 11. treasurer_signatures
-CREATE TABLE treasurer_signatures (
+CREATE TABLE IF NOT EXISTS treasurer_signatures (
   signature_id   INT        NOT NULL AUTO_INCREMENT,
   account_id     INT        NOT NULL,
   signature_data MEDIUMTEXT NOT NULL,
@@ -204,7 +204,7 @@ CREATE TABLE treasurer_signatures (
 );
 
 -- 12. reports
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
   report_id        INT           NOT NULL AUTO_INCREMENT,
   report_type      ENUM('Event','Semester','Annual') NOT NULL,
   title            VARCHAR(255)  NOT NULL,
@@ -230,7 +230,7 @@ CREATE TABLE reports (
 );
 
 -- 13. report_items (tracks which expenses/funds are in each report)
-CREATE TABLE report_items (
+CREATE TABLE IF NOT EXISTS report_items (
   item_id      INT           NOT NULL AUTO_INCREMENT,
   report_id    INT           NOT NULL,
   item_type    ENUM('Expense','Fund') NOT NULL,
@@ -245,7 +245,7 @@ CREATE TABLE report_items (
 );
 
 -- 14. student_fee_exemptions
-CREATE TABLE student_fee_exemptions (
+CREATE TABLE IF NOT EXISTS student_fee_exemptions (
     exemption_id INT NOT NULL AUTO_INCREMENT,
     user_id      INT NOT NULL,
     school_year_id INT NOT NULL,
@@ -260,3 +260,38 @@ CREATE TABLE student_fee_exemptions (
         ON DELETE CASCADE
 );
 
+-- =============================================================================
+-- PERFORMANCE INDEXES
+-- Derived from EF Core query patterns in Controllers
+-- =============================================================================
+
+-- org_fee_payments: payment lookups by student, fee status queries, date filtering
+CREATE INDEX idx_payment_user ON org_fee_payments (user_id);
+CREATE INDEX idx_payment_full_amount ON org_fee_payments (full_amount_id);
+CREATE INDEX idx_payment_date ON org_fee_payments (payment_date);
+
+-- other_funds: report generation by school year, date-range filtering
+CREATE INDEX idx_fund_school_year ON other_funds (school_year_id);
+CREATE INDEX idx_fund_date ON other_funds (received_date);
+
+-- expenses: report generation by school year, date-range filtering
+CREATE INDEX idx_expense_school_year ON expenses (school_year_id);
+CREATE INDEX idx_expense_date ON expenses (expense_date);
+
+-- reports: listing by school year
+CREATE INDEX idx_report_school_year ON reports (school_year_id);
+
+-- student_fee_exemptions: exemption lookups per school year
+CREATE INDEX idx_exemption_school_year ON student_fee_exemptions (school_year_id);
+
+-- treasurer_signatures: signature lookup per treasurer
+CREATE INDEX idx_sig_account ON treasurer_signatures (account_id);
+
+-- =============================================================================
+-- SEED DATA
+-- =============================================================================
+
+-- Default admin account (password: admin123)
+-- To generate a new BCrypt hash in C#: BCrypt.Net.BCrypt.HashPassword("admin123")
+INSERT IGNORE INTO accounts (school_id, password_hash, email, roles, request_status, is_active)
+VALUES ('ADMIN-001', '$2a$11$8K1p/a0dL1LXMc.0SZ0w3OQH2xKGPKwHFt4EAUARVMOBLKcAKSDPi', 'admin@ssg.com', 'Admin', 'Approved', TRUE);

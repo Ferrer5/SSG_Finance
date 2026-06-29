@@ -41,14 +41,15 @@ success "All services are running."
 
 # Summary
 HOST_IP=$(hostname -I | awk '{print $1}')
+APP_PORT=$(grep -E '^APP_PORT=' .env | cut -d'=' -f2 || echo "8085")
 
 echo ""
 echo "=========================================="
 echo "          Deployment Complete!"
 echo "=========================================="
 echo "  Server IP  : ${HOST_IP}"
-echo "  App Port   : 8085"
+echo "  App Port   : ${APP_PORT}"
 echo "  Database   : MySQL 8.0"
 echo ""
-echo "  LAN Access : http://${HOST_IP}:8085"
+echo "  LAN Access : http://${HOST_IP}:${APP_PORT}"
 echo "=========================================="
