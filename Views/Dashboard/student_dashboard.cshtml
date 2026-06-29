@@ -998,12 +998,12 @@
       } else {
         receiptYearSection = studentYearSectionDisplay;
       }
-      document.getElementById('rp-course').textContent         = (studentCourse + ' ' + receiptYearSection).trim() || '—';
+      document.getElementById('rp-course').textContent         = ((studentCourse ? studentCourse + ' - ' : '') + ysFmt(receiptYearSection)).trim() || '—';
       const termEl = document.getElementById('rp-term');
       if (termEl) termEl.textContent = term || '—';
       document.getElementById('rp-amount').textContent         = '₱ ' + paid.toFixed(2);
       document.getElementById('rp-amount-words').textContent   = amountToWords(paid);
-      document.getElementById('rp-received-by').textContent   = receivedByName;
+      document.getElementById('rp-received-by').textContent   = (receivedByName || '—').toUpperCase();
 
       const sigImg = document.getElementById('rp-sig-image');
       if (sigImg) {
@@ -1192,6 +1192,8 @@
       }
     }
 
+    // Display helper: "3-A" -> "3A" (drop the dash, join year+section). Renders course/year/section as "Course - YearSection".
+    function ysFmt(ys){ const s = String(ys == null ? '' : ys).trim(); const i = s.indexOf('-'); return i === -1 ? s : (s.slice(0, i).trim() + s.slice(i + 1).trim()); }
     function showToast(msg, type) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.className = 'show ' + type;

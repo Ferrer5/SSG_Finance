@@ -437,6 +437,8 @@ async function saveEmail(){
   }
 }
 
+// Display helper: "3-A" -> "3A" (drop the dash, join year+section). Renders course/year/section as "Course - YearSection".
+function ysFmt(ys){ const s = String(ys == null ? '' : ys).trim(); const i = s.indexOf('-'); return i === -1 ? s : (s.slice(0, i).trim() + s.slice(i + 1).trim()); }
 function showToast(msg, type) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.className = 'show ' + type;
@@ -607,7 +609,7 @@ function renderPaymentTable(filtered) {
             <td class="td-mono td-m">${i + 1}</td>
             <td><strong>${s.name}</strong></td>
             <td class="td-mono td-m">${s.schoolId}</td>
-            <td class="td-m">${s.courseCode} ${s.yearSection}</td>
+            <td class="td-m">${s.courseCode} - ${ysFmt(s.yearSection)}</td>
             <td class="td-mono" style="color:${s.totalPaid > 0 ? '#5fdd8e' : '#f87171'}">
                 ₱${Number(s.totalPaid).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 ${s.requiredAmount > 0 ? `<span style="color:var(--text-d);font-size:10px"> / ₱${Number(s.requiredAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>` : ''}
@@ -649,7 +651,7 @@ async function renderRecentActivity() {
             <tr>
                 <td><strong>${p.studentName}</strong></td>
                 <td class="td-mono td-m">${p.schoolId}</td>
-                <td class="td-m">${p.courseCode} ${p.yearSection}</td>
+                <td class="td-m">${p.courseCode} - ${ysFmt(p.yearSection)}</td>
                 <td class="td-mono" style="color:#5fdd8e">+₱${Number(p.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                 <td>${statusBadge(p.paymentStatus)}</td>
             </tr>
@@ -1022,7 +1024,7 @@ async function openStudentOrgFeeModal(userId) {
     }
     const s = data.student;
     nameEl.textContent = s.name;
-    subEl.textContent = `${s.schoolId} · ${s.courseCode} ${s.yearSection}${s.role === 'Treasurer' ? ' · Treasurer' : ''}${data.schoolYear ? ' · A.Y. ' + data.schoolYear : ''}`;
+    subEl.textContent = `${s.schoolId} · ${s.courseCode} - ${ysFmt(s.yearSection)}${s.role === 'Treasurer' ? ' · Treasurer' : ''}${data.schoolYear ? ' · A.Y. ' + data.schoolYear : ''}`;
 
     const fees = data.fees || [];
     const txs  = data.transactions || [];

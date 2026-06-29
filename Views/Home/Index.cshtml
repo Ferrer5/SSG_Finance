@@ -1005,7 +1005,7 @@ input[type="password"]::-ms-clear{
 
               <div class="form-group">
                 <label class="form-label" for="section">Section<span class="req">*</span></label>
-                <input type="text" id="section" name="section" class="form-input" placeholder="e.g. A" />
+                <input type="text" id="section" name="section" class="form-input" placeholder="e.g. A" maxlength="4" oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()" />
               </div>
             </div>
           </div>
@@ -1410,6 +1410,13 @@ function handleSignUp() {
 
     if (hasError) {
         showSignupStatus('Please fill in all required fields.', 'fail');
+        return;
+    }
+
+    /* ── Section must be a short section code only (letters/numbers), not the whole course ── */
+    if (section && !/^[A-Za-z0-9]{1,4}$/.test(section)) {
+        setSignupFieldError('section', true);
+        showSignupStatus('Section must be your section code only, e.g. A or 1B (letters/numbers, no spaces).', 'fail');
         return;
     }
 

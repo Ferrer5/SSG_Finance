@@ -375,6 +375,14 @@ namespace MyMvcApp.Services
                     // Create academic profile.
                     // SchoolYearId and SemesterEntered may be null here — the treasurer
                     // sets them later via "Payment Start".
+                    // Sanitize the section: keep only letters/digits, uppercase, cap length.
+                    // Stops free-text mistakes (e.g. a student typing "BIT-CT 1B" into Section).
+                    var sectionClean = System.Text.RegularExpressions.Regex
+                        .Replace(request.Section ?? "", "[^A-Za-z0-9]", "")
+                        .ToUpperInvariant();
+                    if (sectionClean.Length > 4) sectionClean = sectionClean.Substring(0, 4);
+                    if (sectionClean.Length == 0) sectionClean = "A";
+
                     var academicProfile = new AcademicProfile
                     {
                         UserId = user.UserId,
@@ -382,7 +390,7 @@ namespace MyMvcApp.Services
                         SchoolYearId = request.SchoolYearId,
                         SemesterEntered = request.SemesterEntered,
                         YearLevel = request.YearLevel,
-                        Section = request.Section ?? "A", // Default section if null
+                        Section = sectionClean,
                         AcademicStatus = AcademicStatus.Enrolled
                     };
  

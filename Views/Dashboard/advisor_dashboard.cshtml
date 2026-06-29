@@ -1940,6 +1940,8 @@ function escapeHtml(value) {
 }
 // A yearSection like "5-A" means the student has completed the 4-year program,
 // so it displays as "4 Completed". Anything else is shown as-is.
+// Display helper: "3-A" -> "3A" (drop the dash, join year+section). Renders course/year/section as "Course - YearSection".
+function ysFmt(ys){ const s = String(ys == null ? '' : ys).trim(); const i = s.indexOf('-'); return i === -1 ? s : (s.slice(0, i).trim() + s.slice(i + 1).trim()); }
 function fmtYearSection(yearSection) {
   const ys = String(yearSection ?? '').trim();
   const yearPart = ys.split('-')[0].trim();
@@ -2556,7 +2558,7 @@ async function renderHistory() {
           <td class="td-m">—</td>
           <td class="td-m">
             <div style="font-size:11px">
-              <strong>${s.name}</strong> · <span style="color:var(--text-d)">ID: ${s.schoolId}</span> · ${s.courseCode} ${s.yearSection}
+              <strong>${s.name}</strong> · <span style="color:var(--text-d)">ID: ${s.schoolId}</span> · ${s.courseCode} - ${ysFmt(s.yearSection)}
             </div>
           </td>
           <td class="td-m" style="color:var(--text-d)">—</td>
@@ -3088,7 +3090,7 @@ async function pageSearchStudents(q) {
             ${s.hasPaid ? '<span class="badge by" style="font-size:9px">Paid</span>' : ''}
             ${s.hasPartial && !s.hasPaid ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
           </div>
-          <div class="student-info">${s.schoolId} · ${s.courseCode} ${s.yearSection}</div>
+          <div class="student-info">${s.schoolId} · ${s.courseCode} - ${ysFmt(s.yearSection)}</div>
         </div>
       </div>`).join('');
   } catch {
@@ -3354,7 +3356,7 @@ function renderStudentsPage(filtered) {
   }
 
   tbody.innerHTML = data.map((s, i) => {
-    const courseYr = `${escapeHtml(s.courseCode)} ${escapeHtml(fmtYearSection(s.yearSection))}`;
+    const courseYr = `${escapeHtml(s.courseCode)} - ${escapeHtml(ysFmt(fmtYearSection(s.yearSection)))}`;
     const roleTag = s.role === 'Treasurer'
       ? ' <span style="font-size:10px;font-weight:600;background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.25);border-radius:5px;padding:1px 7px;margin-left:6px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle">Treasurer</span>'
       : '';
@@ -3460,7 +3462,7 @@ function printStudentRecord(userId) {
     <div class="sub">SSG Finance Management System</div>
     <div class="meta"><b>Name:</b> ${escapeHtml(s.name)}</div>
     <div class="meta"><b>CTU ID:</b> ${escapeHtml(s.schoolId || '—')}</div>
-    <div class="meta"><b>Course · Year & Section:</b> ${escapeHtml(s.courseCode || '')} ${escapeHtml(fmtYearSection(s.yearSection) || '')}</div>
+    <div class="meta"><b>Course · Year & Section:</b> ${escapeHtml(s.courseCode || '')} - ${escapeHtml(ysFmt(fmtYearSection(s.yearSection) || ''))}</div>
     <table>
       <thead><tr><th>Semester</th><th style="text-align:right">Required</th><th style="text-align:right">Paid</th><th style="text-align:right">Balance</th><th>Status</th></tr></thead>
       <tbody>
@@ -3945,7 +3947,7 @@ async function openStudentOrgFeeModal(userId) {
 
     const s = data.student;
     nameEl.textContent = s.name;
-    subEl.textContent = `${s.schoolId} · ${s.courseCode} ${s.yearSection}${s.role === 'Treasurer' ? ' · Treasurer' : ''}${data.schoolYear ? ' · A.Y. ' + data.schoolYear : ''}`;
+    subEl.textContent = `${s.schoolId} · ${s.courseCode} - ${ysFmt(s.yearSection)}${s.role === 'Treasurer' ? ' · Treasurer' : ''}${data.schoolYear ? ' · A.Y. ' + data.schoolYear : ''}`;
 
     const fees = data.fees || [];
     const txs  = data.transactions || [];
@@ -4201,7 +4203,7 @@ async function searchStudents(q) {
             ${s.hasPaid ? '<span class="badge by" style="font-size:9px">Paid</span>' : ''}
             ${s.hasPartial && !s.hasPaid ? '<span class="badge by" style="font-size:9px;background:rgba(251,191,36,.18);color:#fbbf24">Partial</span>' : ''}
           </div>
-          <div class="student-info">${s.schoolId} · ${s.courseCode} ${s.yearSection}</div>
+          <div class="student-info">${s.schoolId} · ${s.courseCode} - ${ysFmt(s.yearSection)}</div>
         </div>
       </div>`).join('')
       : '<div style="padding:10px 12px;font-size:12px;color:var(--text-d)">No students found.</div>';
@@ -5199,7 +5201,7 @@ async function viewReceipt(type, id, receipt) {
     const formattedDate = issueDate.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const semLabel = r.semester === 'First' ? '1st Semester' : r.semester === 'Second' ? '2nd Semester' : (r.semester || '');
     const term = [r.schoolYear, semLabel].filter(Boolean).join(' - ');
-    const courseLine = [r.course, r.yearSection].filter(Boolean).join(' ');
+    const courseLine = [r.course, ysFmt(r.yearSection)].filter(Boolean).join(' - ');
 
     const studentName = (r.studentName || '').toUpperCase();
     const receiptNo   = r.receiptNumber || receipt;
@@ -5218,7 +5220,7 @@ async function viewReceipt(type, id, receipt) {
       if (g('term'))       g('term').textContent       = term || '—';
       if (g('amount'))     g('amount').textContent     = '₱ ' + amount.toFixed(2);
       if (g('amount-words')) g('amount-words').textContent = amountToWords(amount);
-      if (g('received-by'))  g('received-by').textContent = r.issuedByName || 'Treasurer';
+      if (g('received-by'))  g('received-by').textContent = (r.issuedByName || 'Treasurer').toUpperCase();
 
       const statusEl = g('status');
       if (statusEl) { statusEl.textContent = status; statusEl.className = 'rp-status-badge ' + status.toLowerCase(); }
