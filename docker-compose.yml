@@ -6,32 +6,40 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ssg_system}
     volumes:
       - mysql_data:/var/lib/mysql
+    ports:
+      - "${DB_PORT:-3306}:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   app:
     build: .
     ports:
-      - "5183:8080"
+      - "${APP_PORT:-8085}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__DefaultConnection: "server=db;port=3306;database=${MYSQL_DATABASE:-ssg_system};uid=root;pwd=${DB_ROOT_PASSWORD};"
-      SmtpSettings__Host: ${SMTP_HOST:-}
-      SmtpSettings__Port: ${SMTP_PORT:-}
-      SmtpSettings__UserName: ${SMTP_USERNAME:-}
-      SmtpSettings__Password: ${SMTP_PASSWORD:-}
-      SmtpSettings__EnableSsl: "true"
+      SmtpSettings__Host: "${SMTP_HOST:-}"
+      SmtpSettings__Port: "${SMTP_PORT:-}"
+      SmtpSettings__UserName: "${SMTP_USERNAME:-}"
+      SmtpSettings__Password: "${SMTP_PASSWORD:-}"
+      SmtpSettings__EnableSsl: "${SMTP_ENABLE_SSL:-true}"
     volumes:
-      - ./App_data:/app/App_data:ro
       - uploads:/app/wwwroot/uploads
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
 volumes:
