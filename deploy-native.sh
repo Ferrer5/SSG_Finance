@@ -131,6 +131,7 @@ Requires=mysql.service
 
 [Service]
 WorkingDirectory=${APP_DIR}
+ExecStartPre=/bin/sh -c 'fuser -k ${APP_PORT}/tcp 2>/dev/null || true'
 ExecStart=/usr/bin/dotnet ${APP_DIR}/MyMvcApp.dll
 Restart=always
 RestartSec=10
@@ -151,6 +152,8 @@ UNIT
   chmod 600 "${unit}"   # contains DB/SMTP secrets
   systemctl daemon-reload
   systemctl enable "${SERVICE_NAME}"
+  # Kill any stale process still holding the port so the new service can bind.
+  fuser -k "${APP_PORT}/tcp" 2>/dev/null || true
   systemctl restart "${SERVICE_NAME}"
 }
 

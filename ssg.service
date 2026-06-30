@@ -16,6 +16,7 @@ Requires=mysql.service
 
 [Service]
 WorkingDirectory=<APP_DIR>
+ExecStartPre=/bin/sh -c 'fuser -k 8085/tcp 2>/dev/null || true'
 ExecStart=/usr/bin/dotnet <APP_DIR>/MyMvcApp.dll
 Restart=always
 RestartSec=10
