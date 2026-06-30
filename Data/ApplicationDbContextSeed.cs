@@ -7,8 +7,8 @@ namespace MyMvcApp.Data
     {
         public static async Task SeedAsync(ApplicationDbContext context)
         {
-            // Ensure database is created
-            await context.Database.EnsureCreatedAsync();
+            // Apply pending migrations (creates DB if not exists)
+            await context.Database.MigrateAsync();
 
             // Check if admin account already exists
             var existingAdmin = await context.Accounts
