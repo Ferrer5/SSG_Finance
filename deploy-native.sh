@@ -181,7 +181,7 @@ else
   echo "  Service failed to start. Check:  journalctl -u ${SERVICE_NAME} -e"
 fi
 echo "  LAN access:   http://${HOST_IP}:${APP_PORT}"
-echo "  Default login: admin@ssg.com / admin123  (CHANGE IT NOW)"
+  echo "  Default login: ADMIN-001 / admin123  (CHANGE IT NOW)"
 echo
 echo "  Status:  systemctl status ${SERVICE_NAME}"
 echo "  Logs:    journalctl -u ${SERVICE_NAME} -f"
