@@ -1048,6 +1048,12 @@
              style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s" />
       <div id="email-feedback" style="font-size:11px;margin-top:5px;min-height:16px"></div>
     </div>
+    <div style="margin-bottom:18px">
+      <label style="font-size:11px;color:var(--text-m);display:block;margin-bottom:4px">CTU ID</label>
+      <input id="edit-schoolId" type="text" placeholder="e.g. 1234567 (temporary until issued)"
+             style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;font-family:inherit;outline:none" />
+      <small style="display:block;margin-top:4px;font-size:11px;color:var(--text-d)">Set the student's real CTU ID here once the school issues it. Must be unique.</small>
+    </div>
 
     <!-- Academic fields -->
     <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-d);margin-bottom:10px">Academic Information</div>
@@ -1470,6 +1476,7 @@ function fmtYearSection(yearSection) {
                 document.getElementById('edit-lastName').value   = data.lastName   ?? '';
                 document.getElementById('edit-middleName').value = data.middleName ?? '';
                 document.getElementById('edit-email').value     = data.email     ?? '';
+                document.getElementById('edit-schoolId').value   = data.schoolId   ?? '';
                 document.getElementById('edit-courseId').value   = data.courseId   ?? '';
                 document.getElementById('edit-yearLevel').value  = data.yearLevel  ?? '1';
                 document.getElementById('edit-section').value    = data.section    ?? '';
@@ -1521,6 +1528,7 @@ function fmtYearSection(yearSection) {
         const lastName   = document.getElementById('edit-lastName').value.trim();
         const middleName = document.getElementById('edit-middleName').value.trim();
         const email      = document.getElementById('edit-email').value.trim();
+        const schoolId   = document.getElementById('edit-schoolId').value.trim();
         const courseId   = parseInt(document.getElementById('edit-courseId').value);
         const yearLevel  = parseInt(document.getElementById('edit-yearLevel').value);
         const section    = document.getElementById('edit-section').value.trim();
@@ -1540,7 +1548,7 @@ function fmtYearSection(yearSection) {
             const res  = await fetch('/Home/UpdateStudent', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token ?? '' },
-                body:    JSON.stringify({ accountId, firstName, lastName, middleName, email, courseId, yearLevel, section, academicStatus })
+                body:    JSON.stringify({ accountId, firstName, lastName, middleName, email, schoolId, courseId, yearLevel, section, academicStatus })
             });
             const data = await res.json();
 

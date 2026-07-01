@@ -497,7 +497,7 @@ namespace MyMvcApp.Controllers;
         {
             if (string.IsNullOrWhiteSpace(request.SchoolId) || string.IsNullOrWhiteSpace(request.Password))
             {
-                return Json(new { success = false, message = "CTU ID and password are required." });
+                return Json(new { success = false, message = "CTU ID or Email and password are required." });
             }
 
             // Apply login attempt limiting (prevents brute force)
@@ -507,9 +507,12 @@ namespace MyMvcApp.Controllers;
                 return Json(new { success = false, message = "Account temporarily locked. Try again in 15 minutes." });
             }
 
-            // Step 1: Find account by CTU ID
+            // Step 1: Find account by CTU ID or email. A newly enrolled student without
+            // an issued CTU ID logs in with their email until they set their real ID.
+            var loginId = request.SchoolId.Trim().ToLower();
             var account = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.SchoolId.ToLower() == request.SchoolId.ToLower());
+                .FirstOrDefaultAsync(a => a.SchoolId.ToLower() == loginId
+                                       || (a.Email != null && a.Email.ToLower() == loginId));
 
             if (account == null)
             {
@@ -593,6 +596,7 @@ namespace MyMvcApp.Controllers;
             HttpContext.Session.SetString("AccountId", account.AccountId.ToString());
             HttpContext.Session.SetString("UserRole",  account.Role.ToString());
             HttpContext.Session.SetString("SchoolId",  account.SchoolId);
+            HttpContext.Session.SetString("CreatedAt", account.CreatedAt.ToString("o"));
             HttpContext.Session.SetString("Email",     account.Email ?? "");
             HttpContext.Session.SetString("FirstName", user?.FirstName ?? "");
             HttpContext.Session.SetString("LastName",  user?.LastName ?? "");

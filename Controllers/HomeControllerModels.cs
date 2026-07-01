@@ -88,10 +88,16 @@ public class UpdateStudentRequest
     public string? LastName       { get; set; }
     public string? MiddleName     { get; set; }
     public string? Email          { get; set; }
+    public string? SchoolId       { get; set; }  // admin may set/replace the CTU ID (no time limit)
     public int     CourseId       { get; set; }
     public int?    YearLevel      { get; set; }
     public string? Section        { get; set; }
     public string? AcademicStatus { get; set; }  // add this
+}
+
+public class UpdateMySchoolIdRequest
+{
+    public string SchoolId { get; set; } = string.Empty;
 }
 
 public class UpdateProfessorRequest

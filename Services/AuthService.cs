@@ -243,20 +243,24 @@ namespace MyMvcApp.Services
                 // Layer 4 — Duplicate Detection
                 // Prevent the same person from spamming multiple accounts with the same CTU ID or email.
  
-                // Already registered by CTU ID?
-                var existingById = await _context.Accounts
-                    .FirstOrDefaultAsync(a =>
-                        a.SchoolId != null &&
-                        regRequest.SchoolId != null &&
-                        a.SchoolId.ToLower() == regRequest.SchoolId.ToLower());
- 
-                if (existingById != null)
+                // Already registered by CTU ID? (only when the applicant supplied one —
+                // newly enrolled students without an issued CTU ID get an auto-generated
+                // temporary ID instead, so there is nothing to collide on.)
+                var providedSchoolId = regRequest.SchoolId?.Trim();
+                var hasSchoolId = !string.IsNullOrWhiteSpace(providedSchoolId);
+                if (hasSchoolId)
                 {
-                    return new RegistrationResult
+                    var existingById = await _context.Accounts
+                        .FirstOrDefaultAsync(a => a.SchoolId.ToLower() == providedSchoolId!.ToLower());
+
+                    if (existingById != null)
                     {
-                        Success = false,
-                        Message = "CTU ID is already registered."
-                    };
+                        return new RegistrationResult
+                        {
+                            Success = false,
+                            Message = "CTU ID is already registered."
+                        };
+                    }
                 }
  
                 // Already registered by Email? (only if provided)
@@ -280,13 +284,24 @@ namespace MyMvcApp.Services
  
  
                 // Validate user-specific fields
-                if (string.IsNullOrWhiteSpace(regRequest.FirstName) || 
+                if (string.IsNullOrWhiteSpace(regRequest.FirstName) ||
                     string.IsNullOrWhiteSpace(regRequest.LastName))
                 {
-                    return new RegistrationResult 
-                    { 
-                        Success = false, 
-                        Message = "First name and last name are required." 
+                    return new RegistrationResult
+                    {
+                        Success = false,
+                        Message = "First name and last name are required."
+                    };
+                }
+
+                // A student with no CTU ID yet must provide an email, because email is
+                // the only credential they can log in with until their real CTU ID is set.
+                if (!hasSchoolId && string.IsNullOrWhiteSpace(regRequest.Email))
+                {
+                    return new RegistrationResult
+                    {
+                        Success = false,
+                        Message = "Email is required when you don't have a CTU ID yet."
                     };
                 }
  
@@ -307,10 +322,14 @@ namespace MyMvcApp.Services
                     }
                 }
  
-                // Create account
+                // Create account. school_id is NOT NULL + UNIQUE, so a student without a
+                // CTU ID gets a unique placeholder on insert, then we overwrite it with a
+                // readable temp ID (TEMP-ID-0000042) derived from the new AccountId. The
+                // student can set their real CTU ID later from their profile (within 1
+                // year), or an admin can set it any time.
                 var account = new Account
                 {
-                    SchoolId = request.SchoolId,
+                    SchoolId = hasSchoolId ? providedSchoolId! : $"TEMP-NEW-{Guid.NewGuid():N}",
                     Email = request.Email,
                     PasswordHash = HashPassword(request.Password),
                     Role = request.Role,
@@ -318,9 +337,15 @@ namespace MyMvcApp.Services
                     IsActive = true, // Set to true by default for approved accounts
                     CreatedAt = DateTime.UtcNow
                 };
- 
+
                 _context.Accounts.Add(account);
                 await _context.SaveChangesAsync();
+
+                if (!hasSchoolId)
+                {
+                    account.SchoolId = $"TEMP-ID-{account.AccountId:D7}";
+                    await _context.SaveChangesAsync();
+                }
  
  
                 // Create user record

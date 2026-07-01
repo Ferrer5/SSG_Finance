@@ -24,8 +24,10 @@ public partial class HomeController : AppController
             if (request == null)
                 return Json(new { success = false, message = "Registration request is null." });
 
-            if (string.IsNullOrWhiteSpace(request.SchoolId) || string.IsNullOrWhiteSpace(request.Password))
-                return Json(new { success = false, message = "CTU ID and password are required." });
+            // CTU ID is optional: newly enrolled students may not have one yet, so a
+            // temporary ID is auto-generated. Only the password is strictly required here.
+            if (string.IsNullOrWhiteSpace(request.Password))
+                return Json(new { success = false, message = "Password is required." });
 
             if (!string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email))
                 return Json(new { success = false, message = "Invalid email format." });
@@ -35,7 +37,10 @@ public partial class HomeController : AppController
 
             // Rate limiting: limit signup attempts per IP+SchoolId (prevents registration flooding)
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            var signupKey = BuildLoginKey(request.SchoolId, ip);
+            var signupIdentifier = string.IsNullOrWhiteSpace(request.SchoolId)
+                ? (request.Email ?? "signup")
+                : request.SchoolId;
+            var signupKey = BuildLoginKey(signupIdentifier, ip);
             if (IsTemporarilyLocked(signupKey))
             {
                 return Json(new { success = false, message = "Too many signup attempts. Please wait 15 minutes before trying again." });
@@ -517,6 +522,7 @@ Best regards,<br>SSG Financial Management System";
             lastName       = user.LastName,
             middleName     = user.MiddleName,
             email          = user.Account?.Email,
+            schoolId       = user.Account?.SchoolId,
             courseId       = user.AcademicProfile?.CourseId,
             yearLevel      = user.AcademicProfile?.YearLevel,
             section        = user.AcademicProfile?.Section,
@@ -548,9 +554,26 @@ Best regards,<br>SSG Financial Management System";
             user.LastName   = request.LastName;
             user.MiddleName = request.MiddleName;
 
-            // update email on the account
+            // update email + CTU ID on the account. The admin can set/replace the CTU ID
+            // at any time (no 1-year window) — this is how a student's real ID is filled
+            // in once the school issues it. The value must stay unique.
             if (user.Account != null)
+            {
                 user.Account.Email = request.Email;
+
+                var newSchoolId = request.SchoolId?.Trim();
+                if (!string.IsNullOrWhiteSpace(newSchoolId) &&
+                    !string.Equals(newSchoolId, user.Account.SchoolId, StringComparison.OrdinalIgnoreCase))
+                {
+                    var taken = await _context.Accounts.AnyAsync(a =>
+                        a.AccountId != user.Account.AccountId &&
+                        a.SchoolId.ToLower() == newSchoolId.ToLower());
+                    if (taken)
+                        return Json(new { success = false, message = "That CTU ID is already in use by another account." });
+
+                    user.Account.SchoolId = newSchoolId;
+                }
+            }
 
             // update academic profile
             if (user.AcademicProfile != null)
@@ -749,6 +772,67 @@ Best regards,<br>SSG Financial Management System";
         var taken = await _context.Accounts
             .AnyAsync(a => a.SchoolId.ToLower() == schoolId.ToLower());
         return Json(new { taken });
+    }
+
+    // ----------------------------------------------------------------
+    // UPDATE OWN CTU ID — self-service from the student profile page.
+    // A student who signed up without a CTU ID (auto-assigned a TEMP-ID) can set
+    // their real one here, but ONLY within 1 year of account creation. After that
+    // the field locks and only an admin can change it (see UpdateStudent). The new
+    // value is validated for uniqueness and cannot itself be a temporary ID.
+    // ----------------------------------------------------------------
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateMySchoolId([FromBody] UpdateMySchoolIdRequest request)
+    {
+        var role = GetSessionRole();
+        if (string.IsNullOrEmpty(role))
+            return new ObjectResult(new { success = false, message = "You are not signed in." })
+                { StatusCode = StatusCodes.Status401Unauthorized };
+
+        var accountIdStr = HttpContext.Session.GetString("AccountId");
+        if (!int.TryParse(accountIdStr, out var accountId))
+            return Json(new { success = false, message = "Your session has expired. Please sign in again." });
+
+        try
+        {
+            var schoolId = (request.SchoolId ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(schoolId))
+                return Json(new { success = false, message = "CTU ID is required." });
+
+            if (schoolId.StartsWith("TEMP-", StringComparison.OrdinalIgnoreCase))
+                return Json(new { success = false, message = "Please enter your real CTU ID." });
+
+            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId);
+            if (account == null)
+                return Json(new { success = false, message = "Account not found." });
+
+            // 1-year window, anchored to account creation. Once it closes the CTU ID is
+            // locked and must be changed by an admin instead.
+            if (DateTime.UtcNow > account.CreatedAt.AddYears(1))
+                return Json(new { success = false, message = "The 1-year window to set your CTU ID has passed. Please contact the administrator." });
+
+            // No-op if unchanged (case-insensitive).
+            if (string.Equals(account.SchoolId, schoolId, StringComparison.OrdinalIgnoreCase))
+                return Json(new { success = true, message = "CTU ID updated successfully.", schoolId = account.SchoolId });
+
+            var taken = await _context.Accounts.AnyAsync(a =>
+                a.AccountId != accountId &&
+                a.SchoolId.ToLower() == schoolId.ToLower());
+            if (taken)
+                return Json(new { success = false, message = "That CTU ID is already in use by another account." });
+
+            account.SchoolId = schoolId;
+            await _context.SaveChangesAsync();
+
+            HttpContext.Session.SetString("SchoolId", account.SchoolId);
+
+            return Json(new { success = true, message = "CTU ID updated successfully.", schoolId = account.SchoolId });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"Update failed: {ex.Message}" });
+        }
     }
 
     [HttpPost]

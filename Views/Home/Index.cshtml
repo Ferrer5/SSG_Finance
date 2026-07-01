@@ -539,13 +539,13 @@ body.login-open .lp-right { transform: translateX(0); }
 
 .btn-signup {
   display:block; width:100%; max-width:450px;
-  padding:14px; background:#f3f4f6;
-  color:#111827; border:1.5px solid #d1d5db;
+  padding:15px; background:#ffffff;
+  color:var(--green); border:1.5px solid var(--green);
   border-radius:10px; font-size:15px; font-weight:600;
-  cursor:pointer; transition:background 0.16s, border-color 0.16s;
+  cursor:pointer; transition:background 0.16s, border-color 0.16s, color 0.16s, transform 0.16s;
   font-family:'Inter',sans-serif; text-align:center; text-decoration:none;
 }
-.btn-signup:hover { background:#e5e7eb; border-color:#9ca3af; }
+.btn-signup:hover { background:rgba(39,167,68,0.08); border-color:var(--green-dark); color:var(--green-dark); transform:translateY(-1px); }
 
 /* ── SIGN UP FORM ── */
 .form-section { margin-bottom:18px; }
@@ -882,7 +882,7 @@ input[type="password"]::-ms-clear{
         <h1 class="rp-h1">Sign in</h1>
         <p class="rp-subtitle">Enter your credentials below.</p>
 
-        <input class="input-field" type="text" name="schoolId" placeholder="CTU ID" />
+        <input class="input-field" type="text" name="schoolId" placeholder="CTU ID or Email" autocapitalize="none" autocorrect="off" />
         <div class="password-wrap" style="max-width:450px;">
           <input class="input-field password-input" type="password" id="signinPassword" name="password" placeholder="Password" />
           <button type="button" class="password-toggle" aria-label="Show password" data-toggle-target="#signinPassword" onclick="togglePasswordVisibility(this)">
@@ -893,7 +893,8 @@ input[type="password"]::-ms-clear{
         <a class="forgot-link" onclick="goToForgotPassword()"><strong>Forgot password</strong>?</a>
         <button class="btn-signin" onclick="handleSignIn()">Sign in</button>
 
-        <p class="signup-text">Don't have an account? <a href="#" onclick="goToSignUp()" style="color: #27a744; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sign up</a></p>
+        <p class="signup-text">Don't have an account?</p>
+        <a class="btn-signup" href="#" onclick="goToSignUp(); return false;">Sign up</a>
       </div>
 
        <!-- ── SCREEN: Sign Up ── -->
@@ -907,8 +908,9 @@ input[type="password"]::-ms-clear{
           <div class="section-title">Login Credentials</div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" for="studentId">CTU ID<span class="req">*</span></label>
-              <input type="text" id="studentId" name="studentId" class="form-input" placeholder="Enter your CTU ID" />
+              <label class="form-label" for="studentId">CTU ID</label>
+              <input type="text" id="studentId" name="studentId" class="form-input" placeholder="Leave blank if not yet issued" />
+              <small style="display:block;margin-top:4px;font-size:11px;color:#9ca3af;">Optional — new students can add this later in their profile. You'll log in with your email meanwhile.</small>
             </div>
             <div class="form-group">
               <label class="form-label" for="password">Password<span class="req">*</span></label>
@@ -1125,7 +1127,7 @@ updateClock();
 
 /* ── AUTO-CAPITALIZE NAME FIELDS ── */
 function capitalizeWords(input) {
-  input.value = input.value.replace(/\b\w/g, char => char.toUpperCase());
+  input.value = input.value.replace(/(^|[^\p{L}])(\p{L})/gu, (_, sep, char) => sep + char.toUpperCase());
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1251,7 +1253,7 @@ function handleSignIn() {
   const schoolId = document.querySelector('input[name="schoolId"]').value;
   const password = document.querySelector('input[name="password"]').value;
 
-  if (!schoolId || !password) { alert('Please enter your CTU ID and password'); return; }
+  if (!schoolId || !password) { alert('Please enter your CTU ID or Email and password'); return; }
 
   const btn = document.querySelector('#screenSignIn .btn-signin');
   if (btn.disabled) return;
@@ -1360,12 +1362,13 @@ function handleSignUp() {
     const section         = document.getElementById('section')?.value.trim() || '';
     const yearLevel       = document.getElementById('yearLevel')?.value || '';
     const studentId       = document.getElementById('studentId')?.value.trim() || '';
-    const schoolId        = studentId || `STU-${Date.now()}`;
+    // CTU ID is optional. When blank, send an empty string — the server assigns a
+    // temporary ID and the student sets their real one later from their profile.
+    const schoolId        = studentId;
 
     let hasError = false;
 
-    /* ── Required fields ── */
-    if (!studentId)   { setSignupFieldError('studentId', true);   hasError = true; }
+    /* ── Required fields (CTU ID is intentionally not required) ── */
     if (!firstName)   { setSignupFieldError('firstName', true);   hasError = true; }
     if (!lastName)    { setSignupFieldError('lastName', true);    hasError = true; }
 
@@ -1435,23 +1438,11 @@ function handleSignUp() {
         }, { once: true });
     });
 
-    /* ── Check school ID before sending OTP ── */
+    /* ── Store payload and send OTP ── */
     const submitBtn = document.querySelector('#screenSignUp .submit-btn');
     const origLabel = submitBtn ? submitBtn.textContent : '';
-    if (submitBtn) { submitBtn.textContent = 'Checking…'; submitBtn.disabled = true; }
 
-    fetch('/Home/CheckSchoolId?schoolId=' + encodeURIComponent(studentId))
-    .then(r => r.json())
-    .then(data => {
-        if (data.taken) {
-            if (submitBtn) { submitBtn.textContent = origLabel; submitBtn.disabled = false; }
-            alert('Registration failed: CTU ID is already registered.');
-            return;
-        }
-
-        if (submitBtn) { submitBtn.textContent = origLabel; submitBtn.disabled = false; }
-
-        /* ── Store payload and send OTP ── */
+    const proceedToOtp = () => {
         window._pendingSignUpPayload = {
             schoolId, firstName, lastName, middleName, email,
             password, role: 'Student',
@@ -1461,8 +1452,24 @@ function handleSignUp() {
             yearLevel: yearLevel ? parseInt(yearLevel) : null,
             section, studentId
         };
-
         sendSignupOTP(email);
+    };
+
+    // Only check for a duplicate CTU ID when the student actually entered one.
+    // Without a CTU ID the server assigns a unique temporary ID, so nothing to check.
+    if (!studentId) { proceedToOtp(); return; }
+
+    if (submitBtn) { submitBtn.textContent = 'Checking…'; submitBtn.disabled = true; }
+
+    fetch('/Home/CheckSchoolId?schoolId=' + encodeURIComponent(studentId))
+    .then(r => r.json())
+    .then(data => {
+        if (submitBtn) { submitBtn.textContent = origLabel; submitBtn.disabled = false; }
+        if (data.taken) {
+            alert('Registration failed: CTU ID is already registered.');
+            return;
+        }
+        proceedToOtp();
     })
     .catch(() => {
         if (submitBtn) { submitBtn.textContent = origLabel; submitBtn.disabled = false; }

@@ -12,6 +12,13 @@
     var section       = Context.Session.GetString("Section") ?? "";
     var email         = Context.Session.GetString("Email") ?? "";
     var accountId     = Context.Session.GetString("AccountId") ?? "";
+
+    // CTU ID self-service: a student may set/change their CTU ID from their profile,
+    // but only within 1 year of account creation. After that it locks (admin-only).
+    var createdAtStr    = Context.Session.GetString("CreatedAt") ?? "";
+    var canEditSchoolId = DateTime.TryParse(createdAtStr, null, System.Globalization.DateTimeStyles.RoundtripKind, out var createdAt)
+                          && DateTime.UtcNow <= createdAt.AddYears(1);
+    var schoolIdIsTemp  = schoolId.StartsWith("TEMP-", StringComparison.OrdinalIgnoreCase);
     var initials      = (firstName.Length > 0 ? firstName[0].ToString() : "") + (lastName.Length > 0 ? lastName[0].ToString() : "");
     var avatarPath    = Context.Session.GetString("AvatarPath") ?? "";
     var middleInitial = middleName.Length > 0 ? middleName[0].ToString().ToUpper() + "." : "";
@@ -706,11 +713,28 @@
       <!-- Info fields -->
       <div class="profile-fields">
         <div class="profile-field">
+          @Html.AntiForgeryToken()
           <label>CTU ID</label>
-          <span style="font-family:'DM Mono',monospace;font-size:12px">@(studentId.Length > 0 ? studentId : "—")</span>
+          <div id="schoolIdView" style="display:flex;align-items:center;gap:8px">
+            <span id="schoolIdDisplay" style="flex:1;font-family:'DM Mono',monospace;font-size:12px">@(schoolIdIsTemp ? "Pending" : (studentId.Length > 0 ? studentId : "—"))</span>
+            @if (canEditSchoolId)
+            {
+              <button type="button" onclick="startSchoolIdEdit()" title="Set your CTU ID" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0">Edit</button>
+            }
+          </div>
+          @if (canEditSchoolId)
+          {
+            <div id="schoolIdEdit" style="display:none;flex-direction:column;gap:7px;margin-top:2px">
+              <input type="text" id="schoolIdInput" placeholder="Enter your CTU ID" autocapitalize="characters" autocorrect="off" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none" />
+              <div style="display:flex;gap:7px">
+                <button type="button" id="schoolIdSaveBtn" onclick="saveSchoolId()" style="background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.35);color:#5fdd8e;border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Save</button>
+                <button type="button" onclick="cancelSchoolIdEdit()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text-m);border-radius:7px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+              </div>
+              <small style="font-size:10.5px;color:var(--text-d)">You can set this until one year after your account was created. It becomes a login option.</small>
+            </div>
+          }
         </div>
         <div class="profile-field">
-          @Html.AntiForgeryToken()
           <label>Email</label>
           <div id="emailView" style="display:flex;align-items:center;gap:8px">
             <span id="emailDisplay" style="flex:1">@(email.Length > 0 ? email : "—")</span>
@@ -1187,6 +1211,46 @@
         }
       } catch(e){
         showToast('Failed to update email. Please try again.', 'fail');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    /* ── CTU ID (self-service, within 1 year of account creation) ── */
+    function startSchoolIdEdit(){
+      const cur = document.getElementById('schoolIdDisplay').textContent.trim();
+      const inp = document.getElementById('schoolIdInput');
+      inp.value = (cur === '—' || cur === 'Pending') ? '' : cur;
+      document.getElementById('schoolIdView').style.display = 'none';
+      document.getElementById('schoolIdEdit').style.display = 'flex';
+      inp.focus();
+    }
+    function cancelSchoolIdEdit(){
+      document.getElementById('schoolIdEdit').style.display = 'none';
+      document.getElementById('schoolIdView').style.display = 'flex';
+    }
+    async function saveSchoolId(){
+      const schoolId = document.getElementById('schoolIdInput').value.trim();
+      if(!schoolId){ showToast('CTU ID is required.', 'fail'); return; }
+      const btn = document.getElementById('schoolIdSaveBtn');
+      const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+      btn.disabled = true;
+      try{
+        const res = await fetch('/Home/UpdateMySchoolId', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+          body: JSON.stringify({ schoolId })
+        });
+        const data = await res.json();
+        if(data.success){
+          document.getElementById('schoolIdDisplay').textContent = data.schoolId || schoolId;
+          cancelSchoolIdEdit();
+          showToast(data.message || 'CTU ID updated successfully.', 'ok');
+        } else {
+          showToast(data.message || 'Failed to update CTU ID.', 'fail');
+        }
+      } catch(e){
+        showToast('Failed to update CTU ID. Please try again.', 'fail');
       } finally {
         btn.disabled = false;
       }
