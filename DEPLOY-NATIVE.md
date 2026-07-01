@@ -60,5 +60,3 @@ tar czf uploads_$(date +%F).tgz /opt/ssg/wwwroot/uploads   # uploaded files
 - No reverse proxy is required. If you later add **Nginx**, disable response
   buffering for the SSE endpoint (`proxy_buffering off;` + long read timeout) or
   live updates will stall.
-- This replaces the Docker workflow (`Dockerfile`, `docker-compose.yml`,
-  `deploy.sh`). Use one or the other, not both.
