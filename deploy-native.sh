@@ -58,6 +58,26 @@ ensure_mysql() {
   systemctl enable --now mysql
 }
 
+ensure_psmisc() {
+  if ! command -v fuser >/dev/null 2>&1; then
+    log "Installing psmisc (provides fuser)..."
+    apt-get install -y psmisc
+  fi
+}
+
+wait_port_free() {
+  local port=$1 timeout=${2:-15}
+  for i in $(seq 1 "$timeout"); do
+    if ! fuser "$port/tcp" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  warn "Port $port still in use after ${timeout}s — forcing..."
+  fuser -k "${port}/tcp" 2>/dev/null || true
+  sleep 2
+}
+
 setup_database() {
   log "Provisioning database '${DB_NAME}' and user '${DB_USER}'..."
   mysql --protocol=socket -uroot <<SQL
@@ -129,7 +149,7 @@ UNIT
   chmod 600 "${unit}"
   systemctl daemon-reload
   systemctl enable "${SERVICE_NAME}"
-  fuser -k "${APP_PORT}/tcp" 2>/dev/null || true
+  wait_port_free "${APP_PORT}"
   systemctl restart "${SERVICE_NAME}"
 }
 
@@ -142,6 +162,7 @@ open_firewall() {
 
 ensure_dotnet
 ensure_mysql
+ensure_psmisc
 setup_database
 publish_app
 install_service
