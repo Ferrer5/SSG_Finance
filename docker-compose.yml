@@ -1,0 +1,77 @@
+services:
+  ssg-mysql:
+    image: mysql:8.4
+    container_name: ssgfinance-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "3306"
+    networks:
+      - ssgfinance-network
+
+  ssgfinance-app:
+    build:
+      context: .
+    image: ghcr.io/alduanemirasol/ssgfinance-app:${IMAGE_TAG:-latest}
+    container_name: ssgfinance-app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5183/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    expose:
+      - "5183"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DB_HOST: ssg-mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-ssg_system}
+      DB_USER: ${DB_USER:-ssgfinance}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SSL: ${SMTP_SSL:-true}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - uploads-data:/app/wwwroot/uploads
+    depends_on:
+      ssg-mysql:
+        condition: service_healthy
+    networks:
+      - ssgfinance-network
+
+  ssgfinance-nginx:
+    image: nginx:alpine
+    container_name: ssgfinance-nginx
+    restart: unless-stopped
+    ports:
+      - "8050:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - ssgfinance-app
+    networks:
+      - ssgfinance-network
+
+volumes:
+  mysql-data:
+  uploads-data:
+
+networks:
+  ssgfinance-network:
+    name: ssgfinance-network
+    driver: bridge

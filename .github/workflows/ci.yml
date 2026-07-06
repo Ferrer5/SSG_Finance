@@ -1,0 +1,98 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Backend
+        run: dotnet build --no-restore --configuration Release
+
+  docker-test:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: backend-build
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Environment File
+        run: |
+          cat <<EOF > .env
+          DB_ROOT_PASSWORD=rootpassword
+          DB_HOST=ssg-mysql
+          DB_PORT=3306
+          DB_NAME=ssg_system
+          DB_USER=appuser
+          DB_PASSWORD=password
+          SMTP_HOST=
+          SMTP_PORT=587
+          SMTP_SSL=false
+          SMTP_USERNAME=
+          SMTP_PASSWORD=
+          EOF
+
+      - name: Build Docker Images
+        run: docker compose -f docker-compose.yml build
+
+      - name: Start Containers
+        run: docker compose -f docker-compose.yml up -d
+
+      - name: Verify MySQL Container
+        run: |
+          docker inspect --format='{{.State.Health.Status}}' ssgfinance-mysql | grep healthy
+
+          docker exec ssgfinance-mysql \
+            mysqladmin ping \
+            -h localhost \
+            -u appuser \
+            -ppassword
+
+      - name: Verify Nginx Container
+        run: |
+          docker inspect --format='{{.State.Status}}' ssgfinance-nginx | grep running
+
+          docker exec ssgfinance-nginx nginx -t
+
+      - name: Wait for Application
+        run: |
+          timeout 60 bash -c '
+            until curl -fs http://localhost:8050/ > /dev/null; do
+              sleep 2
+            done
+          '
+
+      - name: Verify Application
+        run: |
+          curl --fail http://localhost:8050/
+
+      - name: Show Container Status
+        if: always()
+        run: docker compose -f docker-compose.yml ps
+
+      - name: Show Container Logs
+        if: always()
+        run: docker compose -f docker-compose.yml logs
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.yml down -v

@@ -28,16 +28,35 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
-// Add Entity Framework Core
+// Add Entity Framework Core — compose connection string from DB_* env vars,
+// fall back to ConnectionStrings:DefaultConnection in appsettings.json.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var dbHost = builder.Configuration["DB_HOST"];
+if (!string.IsNullOrEmpty(dbHost))
+{
+    var dbPort = builder.Configuration["DB_PORT"] ?? "3306";
+    var dbName = builder.Configuration["DB_NAME"] ?? "ssg_system";
+    var dbUser = builder.Configuration["DB_USER"] ?? "root";
+    var dbPassword = builder.Configuration["DB_PASSWORD"] ?? "";
+    connectionString = $"server={dbHost};port={dbPort};database={dbName};uid={dbUser};pwd={dbPassword};";
+}
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add Email Service
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+// Add Email Service — read flat SMTP_* env vars, fall back to SmtpSettings section.
+builder.Services.Configure<SmtpSettings>(options =>
+{
+    options.Host = builder.Configuration["SMTP_HOST"] ?? builder.Configuration["SmtpSettings:Host"] ?? "";
+    int.TryParse(builder.Configuration["SMTP_PORT"] ?? builder.Configuration["SmtpSettings:Port"], out var port);
+    options.Port = port;
+    options.UserName = builder.Configuration["SMTP_USERNAME"] ?? builder.Configuration["SmtpSettings:UserName"] ?? "";
+    options.Password = builder.Configuration["SMTP_PASSWORD"] ?? builder.Configuration["SmtpSettings:Password"] ?? "";
+    bool.TryParse(builder.Configuration["SMTP_SSL"] ?? builder.Configuration["SmtpSettings:EnableSsl"], out var ssl);
+    options.EnableSsl = ssl;
+});
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Add SSE Service
