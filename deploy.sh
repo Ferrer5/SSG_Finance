@@ -33,7 +33,7 @@ echo "Verifying Nginx configuration..."
 docker exec ssgfinance-nginx nginx -t
 
 echo "Verifying application..."
-curl --fail --silent http://localhost:8050/ > /dev/null
+curl --fail --silent http://localhost:8085/ > /dev/null
 
 echo
 echo "Deployment completed successfully."

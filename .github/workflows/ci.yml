@@ -79,14 +79,14 @@ jobs:
       - name: Wait for Application
         run: |
           timeout 60 bash -c '
-            until curl -fs http://localhost:8050/ > /dev/null; do
+            until curl -fs http://localhost:8085/ > /dev/null; do
               sleep 2
             done
           '
 
       - name: Verify Application
         run: |
-          curl --fail http://localhost:8050/
+          curl --fail http://localhost:8085/
 
       - name: Show Container Status
         if: always()
