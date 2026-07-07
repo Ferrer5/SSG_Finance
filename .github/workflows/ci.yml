@@ -67,6 +67,9 @@ jobs:
             -u appuser \
             -ppassword
 
+      - name: Execute Database Schema
+        run: docker exec -i ssgfinance-mysql mysql -u appuser -ppassword ssg_system < Database_mysql
+
       - name: Verify Nginx Container
         run: |
           docker inspect --format='{{.State.Status}}' ssgfinance-nginx | grep running
