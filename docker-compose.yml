@@ -1,5 +1,5 @@
 services:
-  ssg-mysql:
+  ssgfinance-mysql:
     image: mysql:8.4
     container_name: ssgfinance-mysql
     restart: unless-stopped
@@ -9,7 +9,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ssgfinance-mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -37,7 +37,8 @@ services:
       - "5183"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      DB_HOST: ssg-mysql
+      APP_PORT: ${APP_PORT}
+      DB_HOST: ssgfinance-mysql
       DB_PORT: "3306"
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
@@ -50,7 +51,7 @@ services:
     volumes:
       - ./uploads:/app/wwwroot/uploads
     depends_on:
-      ssg-mysql:
+      ssgfinance-mysql:
         condition: service_healthy
     networks:
       - ssgfinance-network
@@ -69,7 +70,7 @@ services:
       - ssgfinance-network
 
 volumes:
-  mysql-data:
+  ssgfinance-mysql-data:
 
 networks:
   ssgfinance-network:
