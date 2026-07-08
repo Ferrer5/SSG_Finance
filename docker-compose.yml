@@ -38,7 +38,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       APP_PORT: ${APP_PORT}
-      DATA_DIR: ${DATA_DIR}
+      PROJECT_DIR: ${PROJECT_DIR}
       DB_HOST: ssgfinance-mysql
       DB_PORT: "3306"
       DB_NAME: ${DB_NAME}
@@ -50,7 +50,7 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
     volumes:
-      - ${DATA_DIR}/uploads:/app/wwwroot/uploads
+      - ${PROJECT_DIR}/uploads:/app/wwwroot/uploads
     depends_on:
       ssgfinance-mysql:
         condition: service_healthy
