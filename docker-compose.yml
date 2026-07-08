@@ -49,7 +49,7 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
     volumes:
-      - ./uploads:/app/wwwroot/uploads
+      - ${DATA_DIR}/uploads:/app/wwwroot/uploads
     depends_on:
       ssgfinance-mysql:
         condition: service_healthy
