@@ -38,12 +38,16 @@ jobs:
       - name: Create Environment File
         run: |
           cat <<EOF > .env
+          ASPNETCORE_ENVIRONMENT=Production
+          APP_PORT=8085
+
           DB_ROOT_PASSWORD=rootpassword
           DB_HOST=ssg-mysql
           DB_PORT=3306
           DB_NAME=ssg_system
           DB_USER=appuser
           DB_PASSWORD=password
+
           SMTP_HOST=
           SMTP_PORT=587
           SMTP_SSL=false
@@ -51,51 +55,63 @@ jobs:
           SMTP_PASSWORD=
           EOF
 
+      - name: Load Environment Variables
+        run: |
+          cat .env >> "$GITHUB_ENV"
+
       - name: Build Docker Images
-        run: docker compose -f docker-compose.yml build
+        run: docker compose build
 
       - name: Start Containers
-        run: docker compose -f docker-compose.yml up -d
+        run: docker compose up -d
 
       - name: Verify MySQL Container
         run: |
-          docker inspect --format='{{.State.Health.Status}}' ssgfinance-mysql | grep healthy
+          timeout 60 bash -c '
+            until [ "$(docker inspect --format="{{.State.Health.Status}}" ssgfinance-mysql)" = "healthy" ]; do
+              sleep 2
+            done
+          '
 
           docker exec ssgfinance-mysql \
             mysqladmin ping \
             -h localhost \
-            -u appuser \
-            -ppassword
+            -u "$DB_USER" \
+            -p"$DB_PASSWORD"
 
       - name: Execute Database Schema
-        run: docker exec -i ssgfinance-mysql mysql -u appuser -ppassword ssg_system < Database_mysql
+        run: |
+          docker exec -i ssgfinance-mysql \
+            mysql \
+            -u "$DB_USER" \
+            -p"$DB_PASSWORD" \
+            "$DB_NAME" < Database_mysql
 
       - name: Verify Nginx Container
         run: |
           docker inspect --format='{{.State.Status}}' ssgfinance-nginx | grep running
-
           docker exec ssgfinance-nginx nginx -t
 
       - name: Wait for Application
         run: |
           timeout 60 bash -c '
-            until curl -fs http://localhost:8085/ > /dev/null; do
+            until curl -fs "http://localhost:${APP_PORT}/" > /dev/null; do
               sleep 2
             done
           '
 
       - name: Verify Application
         run: |
-          curl --fail http://localhost:8085/
+          curl --fail "http://localhost:${APP_PORT}/"
 
       - name: Show Container Status
         if: always()
-        run: docker compose -f docker-compose.yml ps
+        run: docker compose ps
 
       - name: Show Container Logs
         if: always()
-        run: docker compose -f docker-compose.yml logs
+        run: docker compose logs
 
       - name: Cleanup
         if: always()
-        run: docker compose -f docker-compose.yml down -v
+        run: docker compose down -v
