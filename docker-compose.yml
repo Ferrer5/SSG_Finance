@@ -38,6 +38,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       APP_PORT: ${APP_PORT}
+      DATA_DIR: ${DATA_DIR}
       DB_HOST: ssgfinance-mysql
       DB_PORT: "3306"
       DB_NAME: ${DB_NAME}
