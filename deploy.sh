@@ -10,6 +10,7 @@ log_error() { echo "[ERROR] $1"; }
 on_error() {
     echo
     log_error "Deployment failed."
+    log_info "Showing recent container logs..."
     docker compose logs --tail=100 || true
 }
 
@@ -21,7 +22,9 @@ echo "         SSG Finance Deployment         "
 echo "========================================"
 echo
 
+# =========================
 # Create .env on first deployment
+# =========================
 if [ ! -f ".env" ]; then
     log_info "Creating .env from .env.example..."
     cp .env.example .env
@@ -32,52 +35,65 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# =========================
+# Load environment
+# =========================
 log_info "Loading environment..."
 set -a
 source .env
 set +a
 log_ok "Environment loaded."
 
-# Pull latest base images (if any)
-log_info "Pulling latest images..."
-docker compose pull --quiet || true
-
-# Build only if Dockerfile changed
-log_info "Building images..."
+# =========================
+# Build Docker images locally
+# =========================
+log_info "Building Docker images..."
 docker compose build
-log_ok "Build complete."
+log_ok "Images built."
 
-# Recreate ONLY services whose image/config changed
+# =========================
+# Update containers
+# =========================
 log_info "Updating containers..."
 docker compose up -d --remove-orphans
 log_ok "Containers updated."
 
+# =========================
 # Wait for MySQL
+# =========================
 log_info "Waiting for MySQL..."
 until [ "$(docker inspect -f '{{.State.Health.Status}}' ssgfinance-mysql)" = "healthy" ]; do
     sleep 2
 done
 log_ok "MySQL is healthy."
 
-# Wait for App
+# =========================
+# Wait for Application
+# =========================
 log_info "Waiting for application..."
 until [ "$(docker inspect -f '{{.State.Health.Status}}' ssgfinance-app)" = "healthy" ]; do
     sleep 2
 done
 log_ok "Application is healthy."
 
-# Validate nginx
-log_info "Testing Nginx..."
+# =========================
+# Validate Nginx
+# =========================
+log_info "Validating Nginx configuration..."
 docker exec ssgfinance-nginx nginx -t >/dev/null
 log_ok "Nginx configuration is valid."
 
-# Health check
-log_info "Checking endpoint..."
+# =========================
+# Verify Application
+# =========================
+log_info "Checking application endpoint..."
 curl --fail --silent "http://localhost:${APP_PORT}/" >/dev/null
 log_ok "Application is reachable."
 
-# Remove dangling images
-log_info "Cleaning unused images..."
+# =========================
+# Cleanup
+# =========================
+log_info "Cleaning unused Docker images..."
 docker image prune -f >/dev/null
 log_ok "Cleanup complete."
 
