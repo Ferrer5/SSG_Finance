@@ -607,10 +607,21 @@ body.login-open .lp-right { transform: translateX(0); }
   display:block;
 }
 
+/* Keep spacing outside the positioned box so top:50% centers on the input */
+.password-wrap > .input-field{
+  margin-bottom:0;
+}
+
+/* Sign-in uses .input-field; restore the old 14px gap under the field */
+#screenSignIn .password-wrap{
+  margin-bottom:14px;
+}
+
 .password-input,
 .password-wrap .input-field,
 .password-wrap .form-input{
   display:block;
+  width:100%;
   padding-right:44px !important;
 }
 
@@ -631,11 +642,18 @@ body.login-open .lp-right { transform: translateX(0); }
   color:#6b7280;
   z-index:2;
   padding:0;
+  line-height:0;
 }
 
 .password-toggle:hover{ color:var(--green); background:rgba(39,167,68,0.08); }
 
-.password-toggle-icon{ font-size:18px; pointer-events:none; }
+.password-toggle-icon{
+  font-size:18px;
+  pointer-events:none;
+  display:block;
+  width:1em;
+  height:1em;
+}
 
 /* Hide native browser password reveal / clear icons (Edge / IE) so only the custom eye shows */
 .password-input::-ms-reveal,
