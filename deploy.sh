@@ -141,6 +141,15 @@ done
 log_ok "Application is healthy."
 
 # =========================
+# Wait for Nginx
+# =========================
+log_info "Waiting for Nginx..."
+until [ "$(docker inspect -f '{{.State.Health.Status}}' ssgfinance-nginx)" = "healthy" ]; do
+    sleep 2
+done
+log_ok "Nginx is healthy."
+
+# =========================
 # Validate Nginx
 # =========================
 log_info "Validating Nginx configuration..."
