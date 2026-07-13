@@ -3,6 +3,11 @@ services:
     image: mysql:8.4
     container_name: ssgfinance-mysql
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
@@ -27,6 +32,11 @@ services:
     image: ssgfinance-app:latest
     container_name: ssgfinance-app
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5183/"]
       interval: 30s
@@ -61,12 +71,24 @@ services:
     image: nginx:alpine
     container_name: ssgfinance-nginx
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     ports:
       - "${APP_PORT}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
-      - ssgfinance-app
+      ssgfinance-app:
+        condition: service_healthy
     networks:
       - ssgfinance-network
 
