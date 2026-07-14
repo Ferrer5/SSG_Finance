@@ -2,10 +2,26 @@
 
 set -Eeuo pipefail
 
-log_info() { echo "[INFO] $1"; }
-log_ok() { echo "[ OK ] $1"; }
-log_warn() { echo "[WARN] $1"; }
-log_error() { echo "[ERROR] $1"; }
+# Color log-level labels when writing to a terminal. Respect NO_COLOR and keep
+# redirected/CI output free of ANSI escape sequences.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+    COLOR_INFO=$'\033[36m'
+    COLOR_OK=$'\033[32m'
+    COLOR_WARN=$'\033[33m'
+    COLOR_ERROR=$'\033[31m'
+    COLOR_RESET=$'\033[0m'
+else
+    COLOR_INFO=''
+    COLOR_OK=''
+    COLOR_WARN=''
+    COLOR_ERROR=''
+    COLOR_RESET=''
+fi
+
+log_info() { printf '%b[INFO]%b %s\n' "$COLOR_INFO" "$COLOR_RESET" "$*"; }
+log_ok() { printf '%b[ OK ]%b %s\n' "$COLOR_OK" "$COLOR_RESET" "$*"; }
+log_warn() { printf '%b[WARN]%b %s\n' "$COLOR_WARN" "$COLOR_RESET" "$*"; }
+log_error() { printf '%b[ERROR]%b %s\n' "$COLOR_ERROR" "$COLOR_RESET" "$*"; }
 
 APP_IMAGE="ssgfinance-app"
 APP_TAG_LATEST="${APP_IMAGE}:latest"
