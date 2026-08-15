@@ -25,3 +25,4 @@ App_data/*.json
 # ---- OS noise ----
 .DS_Store
 Thumbs.db
+uploads/
